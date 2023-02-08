@@ -10,7 +10,9 @@
     "@prisma/client": "4.9.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
+    "eslint": "^7.32.0 || ^8.2.0",
     "express": "~4.16.1",
+    "global": "^4.4.0",
     "hbs": "~4.0.4",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
@@ -20,10 +22,12 @@
     "passport-magic-login": "^1.2.2"
   },
   "devDependencies": {
-    "reload": "^3.2.1",
     "@faker-js/faker": "^7.6.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.25.2",
     "nodemon": "^2.0.20",
-    "prisma": "^4.10.0"
+    "prisma": "^4.10.0",
+    "reload": "^3.2.1"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
