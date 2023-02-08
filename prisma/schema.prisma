@@ -1,0 +1,225 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String          @id @default(cuid())
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime?       @updatedAt @map("updated_at")
+  email            String          @unique
+  emailVerified    DateTime?       @map("email_verified")
+  givenName        String?
+  familyName       String?
+  customerLeases   Lease[]
+  contactInfo      ContactInfo[]
+  paymentMade      PaymentRecord[]
+  customerInvoices Invoice[]
+  employee         Employee?
+  session          Session[]
+  account          Account[]
+
+  @@unique([id, email])
+  @@index([id, email])
+  @@map("users")
+}
+
+model Employee {
+  user            User            @relation(fields: [email, userId], references: [email, id], onUpdate: NoAction, onDelete: NoAction)
+  userId          String          @id
+  email           String          @unique
+  employeeLeases  Lease[]
+  paymentRecieved PaymentRecord[]
+  isAdmin         Boolean         @default(false)
+
+  @@unique([email, userId])
+}
+
+model ContactInfo {
+  id    String @id @default(cuid())
+  user  User   @relation(fields: [email], references: [email], onUpdate: NoAction)
+  email String
+
+  organizationName   String?
+  address1           String
+  address2           String?
+  address3           String?
+  city               String
+  state              String
+  zip                String
+  phoneNum1          String
+  phoneNum2          String?
+  leases             Lease[]
+  phoneNum1Validated Boolean  @default(false)
+  phoneNum2Validated Boolean? @default(false)
+  softDelete         Boolean  @default(false)
+}
+
+model Unit {
+  num         String        @id
+  building    String
+  size        String
+  unitPricing UnitPricing[]
+
+  @@index([num(sort: Desc)])
+}
+
+model Pricing {
+  id          String        @id @default(cuid())
+  size        String
+  price       Int
+  startDate   DateTime      @default(now())
+  endDate     DateTime?
+  notes       String?
+  unitPricing UnitPricing[]
+
+  @@unique([price, startDate, endDate])
+  @@unique([size, startDate, endDate])
+  @@index([size, endDate(sort: Asc)])
+}
+
+model UnitPricing {
+  id              String    @id @default(cuid())
+  unit            Unit      @relation(fields: [unitNum], references: [num])
+  unitNum         String
+  pricing         Pricing?  @relation(fields: [price, startDate, endDate], references: [price, startDate, endDate])
+  price           Int
+  startDate       DateTime
+  endDate         DateTime?
+  stripeProductId String?
+  leases          Lease[]
+
+  @@unique([unitNum, price])
+  @@unique([unitNum, startDate, endDate])
+}
+
+model Lease {
+  id                 String      @id @default(cuid())
+  customer           User        @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customerId         String
+  employee           Employee    @relation(fields: [employeeId], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  employeeId         String
+  contactInfo        ContactInfo @relation(fields: [contactInfoId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  contactInfoId      String
+  unitPrice          UnitPricing @relation(fields: [price, unitNum], references: [price, unitNum], onUpdate: NoAction)
+  unitNum            String
+  price              Int
+  leaseCreatedAt     DateTime    @default(now())
+  leaseReturnedAt    DateTime?
+  leaseEffectiveDate DateTime
+  leaseEnded         DateTime?
+  invoices           Invoice[]
+
+  @@unique([id, unitNum, price])
+  @@index([id, leaseCreatedAt(sort: Desc)])
+}
+
+model PaymentRecord {
+  id               String      @id @default(cuid())
+  customer         User        @relation(fields: [customerId], references: [id])
+  customerId       String
+  unitNum          String?
+  unitPrice        Int?
+  amount           Int
+  reciever         Employee    @relation(fields: [recieverId], references: [userId])
+  recieverId       String
+  payee            String? //for name if not the same as customer?
+  paymentCreated   DateTime    @default(now())
+  paymentCompleted DateTime?
+  type             PaymentType
+  recordNum        String //Check Num or Reciept Num or Stripe payment id
+  invoiceNum       String?
+  invoice          Invoice?
+
+  @@unique([paymentCompleted, id])
+  @@index([id, paymentCompleted(sort: Desc)])
+}
+
+model Invoice {
+  id              String         @id @default(cuid())
+  customer        User?          @relation(fields: [customerId], references: [id])
+  customerId      String?
+  lease           Lease?         @relation(fields: [leaseId, unitNum, price], references: [id, unitNum, price])
+  leaseId         String?
+  unitNum         String
+  price           Int
+  amount          Int
+  invoiceCreated  DateTime       @default(now())
+  paymentRecord   PaymentRecord? @relation(fields: [paymentRecordId, invoicePaid], references: [id, paymentCompleted], onUpdate: Cascade)
+  paymentRecordId String?        @unique
+  invoicePaid     DateTime?      @unique
+
+  @@unique([paymentRecordId, invoicePaid])
+  @@index([id, invoiceCreated(sort: Desc)])
+}
+
+enum PaymentType {
+  STRIPE
+  CASH
+  CHECK
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                 String    @id @default(cuid())
+  compoundId         String    @unique @map(name: "compound_id")
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String    @map("user_id")
+  providerType       String    @map("provider_type")
+  providerId         String    @map("provider_id")
+  providerAccountId  String    @map("provider_account_id")
+  refreshToken       String?   @map("refresh_token")
+  accessToken        String?   @map("access_token")
+  accessTokenExpires DateTime? @map("access_token_expires")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  scope              String?
+  sessionState       String?   @map("session_state")
+
+  @@unique([providerAccountId, providerId])
+  @@index([providerAccountId], name: "providerAccountId")
+  @@index([providerId], name: "providerId")
+  @@index([userId], name: "userId")
+  @@map("accounts")
+}
+
+model VerificationToken {
+  id                  String                 @id @default(cuid())
+  identifier          String
+  token               String                 @unique
+  expires             DateTime
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  identifierToken     verificationRequests[] @relation(name: "identifierToken")
+  verificationRequest verificationRequests?  @relation(fields: [requestId], references: [id])
+  requestId           String?                @map("identifier_token")
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model verificationRequests {
+  id                String              @id @default(cuid())
+  identifier        String
+  verificationToken VerificationToken   @relation(fields: [token, identifier], references: [token, identifier], name: "identifierToken")
+  token             String
+  VerificationToken VerificationToken[]
+}
