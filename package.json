@@ -13,8 +13,11 @@
     "debug": "~2.6.9",
     "eslint": "^7.32.0 || ^8.2.0",
     "express": "~4.16.1",
+    "express-handlebars": "^6.0.7",
     "express-session": "^1.17.3",
+    "express-validator": "^6.14.3",
     "global": "^4.4.0",
+    "handlebars": "^4.7.7",
     "hbs": "~4.0.4",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
@@ -29,7 +32,8 @@
     "eslint-plugin-import": "^2.25.2",
     "nodemon": "^2.0.20",
     "prisma": "^4.10.0",
-    "reload": "^3.2.1"
+    "reload": "^3.2.1",
+    "yarn-audit-fix": "^9.3.8"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
