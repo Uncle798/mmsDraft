@@ -8,6 +8,7 @@ const MagicLoginStrategy = require('passport-magic-login').default;
 const nodeMailer = require('nodemailer');
 const { htmlToText } = require('nodemailer-html-to-text');
 // const hbs = require('nodemailer-express-handlebars');
+const lo = require('lodash');
 const prisma = require('../lib/db');
 
 const transporter = nodeMailer.createTransport({
@@ -19,21 +20,17 @@ const transporter = nodeMailer.createTransport({
   },
 });
 // transporter.use('compile', hbs);
-transporter.use('compile', htmlToText);
+transporter.use('compile', htmlToText());
 
 async function sendEmail(email, name, link) {
-  const linkString = new String(link);
-  const sendLinkUrl = new String(process.env.BASE_URL);
-  const finalLink = sendLinkUrl.concat(linkString.substring(linkString.indexOf('?')));
   const magicLinkEmail = {
     from: process.env.SMTP_FROM,
     subject: 'Sign into Moscow Ministorage',
     to: email,
     html: `<p>Hello ${name} thanks for visitning Moscow Ministorage, please <br/>
-      <a href=${finalLink}>Click Here to login</a></p>`,
+      <a href=${link}>Click Here to login</a></p>`,
   };
   const info = await transporter.sendMail(magicLinkEmail);
-  console.log(`> sendMail info: ${info}`);
   return info;
 }
 
@@ -52,8 +49,13 @@ const magicLogin = new MagicLoginStrategy({
   secret: process.env.MAGIC_LINK_SECRET,
   callbackURL: '/auth/magiclogin/callback',
   sendMagicLink: async (destination, href) => {
+    const linkString = String(href);
+    const baseLinkString = String(process.env.BASE_URL);
+    const finalLink = baseLinkString
+      .concat('/auth/magiclogin/callback')
+      .concat(linkString.substring(linkString.indexOf('?')));
     try {
-      await sendEmail(destination.email, destination.givenName, href);
+      await sendEmail(destination.email, destination.givenName, finalLink);
     } catch (error) {
       console.error(error);
     }
@@ -62,18 +64,20 @@ const magicLogin = new MagicLoginStrategy({
     try {
       const dbUser = await prisma.user.upsert({
         where: {
-          email: payload.destination,
+          email: payload.destination.email,
         },
         update: {
           updatedAt: new Date(Date.now()),
         },
         create: {
-          data: {
-            email: payload.destination,
-            emailVerified: new Date(Date.now()),
-          },
+          email: payload.destination.email,
+          emailVerified: new Date(Date.now()),
         },
-        include: {
+        select: {
+          id: true,
+          email: true,
+          givenName: true,
+          familyName: true,
           employee: {
             select: {
               userId: true,
@@ -91,7 +95,25 @@ const magicLogin = new MagicLoginStrategy({
 passport.use(magicLogin);
 
 router.post('/sendlink', magicLogin.send);
-router.get('/magiclogin/callback', passport.authenticate('magiclogin'));
+router.get(
+  '/magiclogin/callback',
+  passport.authenticate('magiclogin', { failureRedirect: '/login' }),
+  (req, res) => {
+    const keys = Object.keys(req.user);
+    console.log(`> Object.values(): ${keys}`);
+
+    if (req.user.employee.isAdmin) {
+      res.redirect('/admindashboard');
+    } else if (req.user.employee.userId) {
+      res.redirect('/userdashboard');
+    } else if (!req.user.givenName) {
+      res.redirect('/userfirsttime');
+    } else {
+      res.redirect('/customerdashboard');
+    }
+    res.redirect('/');
+  },
+);
 /* End */
 
 /* Google Login Strategy */
@@ -99,7 +121,7 @@ router.get('/federated/google', passport.authenticate('google'));
 router.get(
   '/oauth2/redirect/google',
   passport.authenticate('google', { failureRedirect: '/login', failureMessage: true }),
-  (req, res) => {
+  (_req, res) => {
     res.redirect('/');
   },
 );
@@ -108,7 +130,7 @@ passport.use(new GoogleStrategy({
   consumerSecret: process.env.GOOGLE_SECRET,
   callbackURL: '/oauth/redirect/google',
   scope: ['profile'],
-}, ((accessToken, refreshToken, profile, cb) => {
+}, ((_accessToken, _refreshToken, profile, cb) => {
   try {
     let account = prisma.account.findFirst({
       where: {
@@ -164,7 +186,7 @@ router.post('/', (req, res, next) => {
 });
 
 /* GET login page. */
-router.get('/login', (req, res, next) => {
+router.get('/login', (req, res) => {
   res.render('login', { title: 'Login to Moscow Ministorage' });
 });
 

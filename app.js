@@ -9,7 +9,9 @@ const { engine } = require('express-handlebars');
 const prisma = require('./lib/db');
 
 const indexRouter = require('./routes/index');
-const usersRouter = require('./routes/users');
+const adminDashboard = require('./routes/dashboards/admin');
+const employeeDashboard = require('./routes/dashboards/employee');
+const customerDashboard = require('./routes/dashboards/customer');
 const authRouter = require('./routes/auth');
 const validationRouter = require('./routes/validation');
 
@@ -41,7 +43,9 @@ app.use(session({
 
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
-app.use('/users', usersRouter);
+app.use('/admindashboard', adminDashboard);
+app.use('/employeedashboard', employeeDashboard);
+app.use('/customerdashboard', customerDashboard);
 app.use('/validation', validationRouter);
 
 // catch 404 and forward to error handler

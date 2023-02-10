@@ -25,10 +25,11 @@ router.post(
         },
       });
       let givenName = '';
-      if (dbUser === null) {
+      if (!dbUser) {
         givenName = 'Guest';
+      } else {
+        givenName = dbUser.givenName;
       }
-      givenName = dbUser.givenName;
       needle.post(
         sendLinkUrl,
         {
@@ -44,8 +45,9 @@ router.post(
             res.set(err);
             res.send();
           }
-        // res.set(response);
-        // res.send();
+          if (response.body.success === true) {
+            res.render('loginSuccessfullEmailSent');
+          }
         },
       );
     }

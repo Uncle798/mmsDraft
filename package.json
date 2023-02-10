@@ -43,7 +43,7 @@
     "seed": "node prisma/seed.mjs"
   },
   "nodemonConfig": {
-    "ext": "js, json, html, hbs, mjs",
+    "ext": "js, json, html, hbs, mjs, handlebars",
     "ignore": "prismaScratchPad.mjs"
   }
 }
