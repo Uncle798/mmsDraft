@@ -35,11 +35,19 @@ async function sendEmail(email, name, link) {
 
 passport.serializeUser((user, cb) => {
   process.nextTick(() => {
-    cb(null, { id: user.id, email: user.email });
+    console.log(`> serializeUser(user.givenName): ${user.givenName}`);
+    cb(null, {
+      id: user.id,
+      email: user.email,
+      givenName: user.givenName,
+      employee: Boolean(user.employee.userId),
+      isAdmin: user.employee.isAdmin,
+    });
   });
 });
 
 passport.deserializeUser((user, cb) => {
+  console.log(`> deSerializeUser(user.givenName): ${user.givenName}`);
   process.nextTick(() => cb(null, user));
 });
 
@@ -76,7 +84,6 @@ const magicLogin = new MagicLoginStrategy({
           id: true,
           email: true,
           givenName: true,
-          familyName: true,
           employee: {
             select: {
               userId: true,
@@ -101,10 +108,10 @@ router.get(
     const keys = Object.keys(req.user);
     console.log(`> auth.js magiclogin/callback Object.keys(req.user): ${keys}`);
 
-    if (req.user.employee.isAdmin) {
+    if (req.user.isAdmin) {
       res.redirect('/admindashboard');
-    } else if (req.user.employee.userId) {
-      res.redirect('/userdashboard');
+    } else if (req.user.employee) {
+      res.redirect('/employeedashboard');
     } else if (!req.user.givenName) {
       res.redirect('/userfirsttime');
     } else {
