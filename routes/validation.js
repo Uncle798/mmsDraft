@@ -1,8 +1,11 @@
 const express = require('express');
 
 const router = express.Router();
+const needle = require('needle');
 const { body, validationResult } = require('express-validator');
 const prisma = require('../lib/db');
+
+const sendLinkUrl = `${process.env.BASE_URL}/auth/sendlink`;
 
 router.post(
   '/loginform',
@@ -10,10 +13,11 @@ router.post(
   async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.render('login', {
-        title: 'Login to Moscow Ministorage',
-        errors: errors.array(),
-      });
+      console.error(errors.array());
+      // res.render('login', {
+      //   title: 'Login to Moscow Ministorage',
+      //   errors: errors.array(),
+      // });
     } else {
       const dbUser = await prisma.user.findUnique({
         where: {
@@ -25,25 +29,30 @@ router.post(
         givenName = 'Guest';
       }
       givenName = dbUser.givenName;
-      const sendEmail = fetch('/auth/sendLink', {
-        method: 'POST',
-        body: JSON.stringify({
+      needle.post(
+        sendLinkUrl,
+        {
           destination: {
             email: req.body.email,
             givenName,
           },
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      }).catch((err) => {
-        res.render('login', {
-          title: 'Login to Moscow Ministorage',
-          errors: err,
-        });
-      });
-      res.send(sendEmail);
+        },
+        { json: true },
+        (err, response) => {
+          if (err) {
+            console.error(err);
+            res.set(err);
+            res.send();
+          }
+        // res.set(response);
+        // res.send();
+        },
+      );
     }
   },
 );
+
+module.exports = router;
 
 // const stateCodes = [
 //   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'PR', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'VI', 'WA', 'WV', 'WI', 'WY',

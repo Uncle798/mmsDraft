@@ -6,7 +6,8 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth').Strategy;
 const MagicLoginStrategy = require('passport-magic-login').default;
 const nodeMailer = require('nodemailer');
-
+const { htmlToText } = require('nodemailer-html-to-text');
+// const hbs = require('nodemailer-express-handlebars');
 const prisma = require('../lib/db');
 
 const transporter = nodeMailer.createTransport({
@@ -17,16 +18,22 @@ const transporter = nodeMailer.createTransport({
     pass: process.env.SMTP_PASSWORD,
   },
 });
+// transporter.use('compile', hbs);
+transporter.use('compile', htmlToText);
 
 async function sendEmail(email, name, link) {
+  const linkString = new String(link);
+  const sendLinkUrl = new String(process.env.BASE_URL);
+  const finalLink = sendLinkUrl.concat(linkString.substring(linkString.indexOf('?')));
   const magicLinkEmail = {
     from: process.env.SMTP_FROM,
+    subject: 'Sign into Moscow Ministorage',
     to: email,
     html: `<p>Hello ${name} thanks for visitning Moscow Ministorage, please <br/>
-      <a href=${link}>${link}</a></p>`,
+      <a href=${finalLink}>Click Here to login</a></p>`,
   };
   const info = await transporter.sendMail(magicLinkEmail);
-  console.log(info);
+  console.log(`> sendMail info: ${info}`);
   return info;
 }
 
@@ -83,8 +90,8 @@ const magicLogin = new MagicLoginStrategy({
 });
 passport.use(magicLogin);
 
-router.post('/sendLink', magicLogin.send);
-router.get('/auth/magiclogin/callback', passport.authenticate('magiclogin'));
+router.post('/sendlink', magicLogin.send);
+router.get('/magiclogin/callback', passport.authenticate('magiclogin'));
 /* End */
 
 /* Google Login Strategy */
@@ -147,7 +154,6 @@ passport.use(new GoogleStrategy({
   }
 })));
 /* End */
-
 
 /* Logout Route */
 router.post('/', (req, res, next) => {

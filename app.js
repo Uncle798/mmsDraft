@@ -11,7 +11,7 @@ const prisma = require('./lib/db');
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const authRouter = require('./routes/auth');
-const validationRouter = require('./routes/validation')
+const validationRouter = require('./routes/validation');
 
 const app = express();
 
@@ -42,6 +42,7 @@ app.use(session({
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/users', usersRouter);
+app.use('/validation', validationRouter);
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
