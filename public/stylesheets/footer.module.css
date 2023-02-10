@@ -4,6 +4,7 @@ ul {
     padding: 0;
     overflow: hidden;
     background-color: #333333;
+    position: relative;
 }
 
 li {
@@ -20,4 +21,10 @@ li a {
 
 li a:hover {
     background-color: #111111;
+}
+li button {
+    margin: 14px;
+    position: absolute;
+    background-color: #ee9d9d;
+
 }
