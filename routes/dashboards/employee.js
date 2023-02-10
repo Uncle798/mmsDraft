@@ -6,7 +6,11 @@ const passport = require('passport');
 /* GET home page. */
 router.get(
   '/',
-  passport.authenticate(['magiclink', 'google'], { failureRedirect: '/auth/login' }),
+  passport.authenticate(
+    'magiclogin',
+    { failureRedirect: '/auth/login', failureFlash: true, failureMessage: 'Please login' },
+  ),
+  // eslint-disable-next-line no-unused-vars
   (req, res, next) => {
     res.render('employeeDashboard', { title: 'Employee Dashboard' });
   },

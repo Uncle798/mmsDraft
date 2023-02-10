@@ -8,7 +8,6 @@ const MagicLoginStrategy = require('passport-magic-login').default;
 const nodeMailer = require('nodemailer');
 const { htmlToText } = require('nodemailer-html-to-text');
 // const hbs = require('nodemailer-express-handlebars');
-const lo = require('lodash');
 const prisma = require('../lib/db');
 
 const transporter = nodeMailer.createTransport({
@@ -97,10 +96,10 @@ passport.use(magicLogin);
 router.post('/sendlink', magicLogin.send);
 router.get(
   '/magiclogin/callback',
-  passport.authenticate('magiclogin', { failureRedirect: '/login' }),
+  passport.authenticate('magiclogin', { failureRedirect: '/login', failureFlash: true, failureMessage: 'Magic Login Error' }),
   (req, res) => {
     const keys = Object.keys(req.user);
-    console.log(`> Object.values(): ${keys}`);
+    console.log(`> auth.js magiclogin/callback Object.keys(req.user): ${keys}`);
 
     if (req.user.employee.isAdmin) {
       res.redirect('/admindashboard');
@@ -179,6 +178,7 @@ passport.use(new GoogleStrategy({
 
 /* Logout Route */
 router.post('/', (req, res, next) => {
+  // eslint-disable-next-line consistent-return
   req.logout((err) => {
     if (err) { return next(err); }
     res.redirect('/');
@@ -187,6 +187,8 @@ router.post('/', (req, res, next) => {
 
 /* GET login page. */
 router.get('/login', (req, res) => {
+  const keys = Object.values(req.session.flash);
+  console.log(`> Object.values(req.session.flash): ${keys}`);
   res.render('login', { title: 'Login to Moscow Ministorage' });
 });
 
