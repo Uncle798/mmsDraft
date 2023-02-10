@@ -13,6 +13,7 @@
     "debug": "~2.6.9",
     "eslint": "^7.32.0 || ^8.2.0",
     "express": "~4.16.1",
+    "express-flash": "^0.0.2",
     "express-handlebars": "^6.0.7",
     "express-session": "^1.17.3",
     "express-validator": "^6.14.3",
