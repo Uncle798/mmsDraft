@@ -12,9 +12,7 @@ const passport = require('passport');
 const prisma = require('./lib/db');
 
 const indexRouter = require('./routes/index');
-const adminDashboard = require('./routes/dashboards/admin');
-const employeeDashboard = require('./routes/dashboards/employee');
-const customerDashboard = require('./routes/dashboards/customer');
+const dashboardRouter = require('./routes/dashboards');
 const authRouter = require('./routes/auth');
 const validationRouter = require('./routes/validation');
 
@@ -29,6 +27,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(passport.initialize());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -48,9 +47,7 @@ app.use(flash());
 
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
-app.use('/admindashboard', adminDashboard);
-app.use('/employeedashboard', employeeDashboard);
-app.use('/customerdashboard', customerDashboard);
+app.use('/dashboards', dashboardRouter);
 app.use('/validation', validationRouter);
 
 // catch 404 and forward to error handler

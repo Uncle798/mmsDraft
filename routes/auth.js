@@ -41,7 +41,7 @@ passport.serializeUser((user, cb) => {
       email: user.email,
       givenName: user.givenName,
       employee: Boolean(user.employee.userId),
-      isAdmin: user.employee.isAdmin,
+      isAdmin: Boolean(user.employee.isAdmin),
     });
   });
 });
@@ -109,13 +109,13 @@ router.get(
     console.log(`> auth.js magiclogin/callback Object.keys(req.user): ${keys}`);
 
     if (req.user.isAdmin) {
-      res.redirect('/admindashboard');
+      res.redirect('/dashboards/admin');
     } else if (req.user.employee) {
-      res.redirect('/employeedashboard');
+      res.redirect('/dashboards/employee');
     } else if (!req.user.givenName) {
       res.redirect('/userfirsttime');
     } else {
-      res.redirect('/customerdashboard');
+      res.redirect('/dashboards/customer');
     }
     res.redirect('/');
   },
