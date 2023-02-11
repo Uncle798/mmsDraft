@@ -127,14 +127,14 @@ router.get('/federated/google', passport.authenticate('google'));
 router.get(
   '/oauth2/redirect/google',
   passport.authenticate('google', { failureRedirect: '/login', failureMessage: true }),
-  (_req, res) => {
+  (req, res) => {
     res.redirect('/');
   },
 );
 passport.use(new GoogleStrategy({
   consumerKey: process.env.GOOGLE_ID,
   consumerSecret: process.env.GOOGLE_SECRET,
-  callbackURL: '/oauth/redirect/google',
+  callbackURL: 'http://localhost:3000/oauth/redirect/google',
   scope: ['profile'],
 }, ((_accessToken, _refreshToken, profile, cb) => {
   try {

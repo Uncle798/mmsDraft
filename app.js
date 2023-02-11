@@ -3,6 +3,7 @@ const createError = require('http-errors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const debug = require('debug')('mmsServer');
 const session = require('express-session');
 const flash = require('express-flash');
 const { PrismaSessionStore } = require('@quixo3/prisma-session-store');
@@ -26,7 +27,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-// app.use(passport.initialize());
+app.use(passport.initialize());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: process.env.SESSION_SECRET,

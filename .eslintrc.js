@@ -13,6 +13,6 @@ module.exports = {
   },
   rules: {
     'linebreak-style': 0,
-    allowForLoopAfterthoughts: 0,
+    'allowForLoopAfterthoughts': 0,
   },
 };

@@ -1,6 +1,8 @@
 const express = require('express');
 // const passport = require('passport');
 
+const debug = require('debug')('mmsServer');
+
 const router = express.Router();
 
 /* Admin Dashboard. */
@@ -9,11 +11,11 @@ router.get(
   //   passport.authenticate('magiclogin'),
   // eslint-disable-next-line no-unused-vars
   (req, res, next) => {
-    console.log(`> adminDashboard: ${req.user.isAdmin}`);
-    if (req.user.employee.isAdmin) {
+    debug(`> adminDashboard: ${req.user}`);
+    if (req.user) {
       res.render('adminDashboard', { title: 'Admin Dashboard' });
     } else {
-      res.redirect('/login');
+      res.redirect(401, '/auth/login');
     }
     res.redirect('/');
   },
@@ -26,7 +28,7 @@ router.get(
   // eslint-disable-next-line no-unused-vars
   (req, res, next) => {
     if (!req.user) {
-      res.redirect('/login');
+      res.redirect('/auth/login');
     } else {
       res.render('customerDashboard', { title: 'Customer Dashboard' });
     }
@@ -40,10 +42,13 @@ router.get(
   //   passport.authenticate('magiclogin'),
   // eslint-disable-next-line no-unused-vars
   (req, res, next) => {
-    if (req.user.givenName) {
+    const givenName = req.user ?? false;
+    debug(`> ${givenName}`);
+    if (givenName) {
       res.render('employeeDashboard', { title: 'Employee Dashboard' });
     } else {
-      res.redirect('/login');
+      res.redirect('/auth/login');
+      res.end();
     }
     res.redirect('/');
   },
