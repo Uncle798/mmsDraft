@@ -4,47 +4,36 @@
  * Module dependencies.
  */
 
-const livereload = require('livereload');
-const app = require('../app');
-const debug = require('debug')('mmsdraft:server');
+const debug = require('debug')('http');
 const http = require('http');
+const app = require('../app');
 
 /**
  * Get port from environment and store in Express.
  */
-function normalizePort(val) {
-  const port = parseInt(val, 10);
 
-  if (Number.isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
-}
-const port = normalizePort(process.env.PORT || '3000');
-app.set('port', port);
+const normalizedPort = normalizePort(process.env.PORT || '3000');
+app.set('port', normalizedPort);
 
 /**
  * Create HTTP server.
  */
 
-const server = livereload.createServer();
+const server = http.createServer(app, (req, res) => {
+  debug(`${req.method} ${req.url}`);
+});
 
-/**
- * Event listener for HTTP server "error" event.
- */
+server.listen(normalizedPort);
 
-function onError(error) {
+server.on('listening', () => {
+  const { address, family, port } = server.address();
+  debug(`Listening at ${typeof address}, type: ${family}, port: ${port}`);
+});
+
+server.on('error', (error) => {
   if (error.syscall !== 'listen') {
     throw error;
   }
-
   const bind = typeof port === 'string'
     ? `Pipe ${port}`
     : `Port ${port}`;
@@ -62,24 +51,24 @@ function onError(error) {
     default:
       throw error;
   }
-}
+});
 
 /**
-   * Event listener for HTTP server "listening" event.
-   */
-
-function onListening() {
-  const addr = server.address();
-  const bind = typeof addr === 'string'
-    ? `pipe ${addr}`
-    : `port ${addr.port}`;
-  debug(`Listening on ${bind}`);
-}
-
-/** F
- * Listen on provided port, on all network interfaces.
+ * Normalize a port into a number, string, or false.
  */
 
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+function normalizePort(val) {
+  const port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}

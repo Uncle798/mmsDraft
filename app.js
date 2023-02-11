@@ -4,7 +4,6 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const session = require('express-session');
-// eslint-disable-next-line import/no-extraneous-dependencies
 const flash = require('express-flash');
 const { PrismaSessionStore } = require('@quixo3/prisma-session-store');
 const { engine } = require('express-handlebars');
@@ -27,7 +26,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(passport.initialize());
+// app.use(passport.initialize());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: process.env.SESSION_SECRET,
