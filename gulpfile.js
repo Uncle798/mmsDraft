@@ -18,9 +18,6 @@ async function startServer() {
 }
 
 function startReload() {
-  setTimeout(() => {
-    
-  }, timeout);
   browserSync.init({
     port: 3002, // this can be any port, it will show our app
     proxy: 'http://localhost:3000/', // this is the port where express server works
