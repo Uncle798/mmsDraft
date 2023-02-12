@@ -13,17 +13,14 @@ async function startServer() {
   try {
     const result = await dotenv.config();
     if (result.error) { debug(result.error); }
-    console.log(`>result.parsed = ${result.parsed}`);
-    for (let i = 0; i < (Object.keys(result.parsed)).length; i++) {
-      debug(`> result ${Object.keys(Object.values(result.parsed))}`);
-    }
-    nodemon({
+    const server = await nodemon({
       script: './bin/www', // this is where my express server is
       ext: 'js handlebars css', // nodemon watches *.js, *.handlebars and *.css files
       env: { NODE_ENV: 'development' },
     });
+    debug(`Server listing on ${server}`)
   } catch (error) {
-    console.log(error)
+    console.log(error);
     debug(error);
   }
 }
@@ -39,17 +36,25 @@ async function startReload() {
 }
 
 async function startNgrok() {
-  let result = dotenv.config();
-  debug(`> result ${result}`);
+  const result = dotenv.config();
+  const keys = Object.keys(result.parsed);
+  const values = Object.values(result.parsed);
   const url = await ngrok.connect(browserSyncPort);
-  const parsedEnv = dotenv.parse();
-  parsedEnv.NRGOK_URL = url;
-  await fs.writeFile('./.env', parsedEnv, (err) => { debug(err); });
-  result = dotenv.config();
-  debug(`> result ${result}`);
+  console.log(`url ${url}`);
+  await fs.writeFile('./.env', '', (err) => { debug(err); });
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i] === 'NGROK_URL') {
+      continue;
+    } else {
+      fs.appendFileSync('./.env', `${keys[i]}="${values[i]}"\r\n`);
+    }
+  }
+  fs.appendFileSync('./.env', `NGROK_URL="${url}"\r\n`);
+  dotenv.config();
+  debug('ngrok public url: ' + url);
 }
 
-exports.startDev = gulp.series([startServer, startReload]);
+exports.startDev = gulp.series([startNgrok, startServer, startReload]);
 exports.startNgrok = startNgrok;
 exports.startServer = startServer;
 exports.startReload = startReload;

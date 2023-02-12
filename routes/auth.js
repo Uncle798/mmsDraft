@@ -134,7 +134,7 @@ router.get(
 passport.use(new GoogleStrategy({
   consumerKey: process.env.GOOGLE_ID,
   consumerSecret: process.env.GOOGLE_SECRET,
-  callbackURL: 'http://localhost:3000/oauth/redirect/google',
+  callbackURL: `${process.env.NGROK_URL}/oauth/redirect/google`,
   scope: ['profile'],
 }, ((_accessToken, _refreshToken, profile, cb) => {
   try {

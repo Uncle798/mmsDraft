@@ -20,6 +20,7 @@ app.set('port', normalizedPort);
  */
 
 const server = http.createServer(app, (req, res) => {
+  console.log(`> createServer ${req.method} ${req.url}`)
   debug(`${req.method} ${req.url}`);
 });
 
