@@ -3,7 +3,7 @@ const express = require('express');
 
 const router = express.Router();
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth').Strategy;
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const MagicLoginStrategy = require('passport-magic-login').default;
 const nodeMailer = require('nodemailer');
 const { htmlToText } = require('nodemailer-html-to-text');
@@ -123,20 +123,25 @@ router.get(
 /* End */
 
 /* Google Login Strategy */
-router.get('/federated/google', passport.authenticate('google'));
+router.get('/federated/google', passport.authenticate('google', { scope: ['profile'] }), (req, res) => {
+  console.log(`> federated/google req: ${req}`);
+});
 router.get(
   '/oauth2/redirect/google',
   passport.authenticate('google', { failureRedirect: '/login', failureMessage: true }),
   (req, res) => {
+    console.log(`> /oauth2/redirect/google req: ${req}`);
     res.redirect('/');
   },
 );
 passport.use(new GoogleStrategy({
-  consumerKey: process.env.GOOGLE_ID,
-  consumerSecret: process.env.GOOGLE_SECRET,
-  callbackURL: `${process.env.NGROK_URL}/oauth/redirect/google`,
-  scope: ['profile'],
+  clientID: process.env.GOOGLE_ID,
+  clientSecret: process.env.GOOGLE_SECRET,
+  callbackURL: 'http://localhost:3000/oauth2/redirect/google',
 }, ((_accessToken, _refreshToken, profile, cb) => {
+  console.log(`> accessToken: ${_accessToken}`);
+  console.log(`> refreshToke: ${_refreshToken}`);
+  console.log(`> profile: ${profile.email}`);
   try {
     let account = prisma.account.findFirst({
       where: {
