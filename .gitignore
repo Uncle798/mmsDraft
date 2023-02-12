@@ -31,3 +31,5 @@ yarn-error.log*
 .env
 
 
+security/req.cnf
+security/www.localhost.com

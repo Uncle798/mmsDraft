@@ -9,7 +9,24 @@ const fs = require('fs');
 
 const browserSyncPort = 3002;
 
-async function startServer() {
+async function startHttpS() {
+  try {
+    const result = await dotenv.config();
+    if (result.error) { debug(result.error); }
+    const server = await nodemon({
+      script: './bin/https', // this is where my express server is
+      ext: 'js handlebars css', // nodemon watches *.js, *.handlebars and *.css files
+      env: { NODE_ENV: 'development' },
+    });
+    debug(`Server listing on ${server}`)
+  } catch (error) {
+    console.log(error);
+    debug(error);
+  }
+}
+
+
+async function startHttp() {
   try {
     const result = await dotenv.config();
     if (result.error) { debug(result.error); }
@@ -54,7 +71,9 @@ async function startNgrok() {
   debug('ngrok public url: ' + url);
 }
 
-exports.startDev = gulp.series([startNgrok, startServer, startReload]);
+exports.startDev = gulp.series([startNgrok, startHttp, startReload]);
+exports.startHttps = gulp.series([startNgrok, startHttpS, startReload]);
 exports.startNgrok = startNgrok;
-exports.startServer = startServer;
+exports.startHttp = startHttp;
 exports.startReload = startReload;
+exports.startHttpS = startHttpS;
