@@ -7,6 +7,7 @@ const prisma = require('../lib/db');
 
 const sendLinkUrl = `${process.env.BASE_URL}/auth/sendlink`;
 
+/* Login Form  */
 router.post(
   '/loginform',
   body('email', 'Email required').trim().isEmail().escape(),
@@ -50,6 +51,24 @@ router.post(
           }
         },
       );
+    }
+  },
+);
+
+/* Name form  */
+router.post(
+  '/userfirsttime',
+  body(['givenName, familyName']).trim().escape().isAlpha(),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.error(errors.array());
+      // res.render('login', {
+      //   title: 'Login to Moscow Ministorage',
+      //   errors: errors.array(),
+      // });
+    } else {
+      res.redirect('/availableunits');
     }
   },
 );
