@@ -34,22 +34,33 @@ async function sendEmail(email, name, link) {
 }
 
 passport.serializeUser((user, cb) => {
+  const keys = Object.keys(user.user);
+  console.log(`user keys: ${keys}`);
   process.nextTick(() => {
-    console.log(`> serializeUser(user.givenName): ${user.givenName}`);
+    let employee = false;
+    let isAdmin = false;
+    if (user.employee !== null) {
+      employee = true;
+      isAdmin = user.employee.isAdmin !== null;
+    }
+    const givenName = user.givenName !== null;
     cb(null, {
       id: user.id,
       email: user.email,
-      givenName: user.givenName,
-      employee: Boolean(user.employee.userId),
-      isAdmin: Boolean(user.employee.isAdmin),
+      givenName,
+      employee,
+      isAdmin,
     });
   });
 });
 
 passport.deserializeUser((user, cb) => {
-  console.log(`> deSerializeUser(user.givenName): ${user.givenName}`);
   process.nextTick(() => cb(null, user));
 });
+
+function redirectUser(user) {
+
+}
 
 /* Magic Login Strategy */
 const magicLogin = new MagicLoginStrategy({
@@ -105,9 +116,6 @@ router.get(
   '/magiclogin/callback',
   passport.authenticate('magiclogin', { failureRedirect: '/login', failureFlash: true, failureMessage: 'Magic Login Error' }),
   (req, res) => {
-    const keys = Object.keys(req.user);
-    console.log(`> auth.js magiclogin/callback Object.keys(req.user): ${keys}`);
-
     if (req.user.isAdmin) {
       res.redirect('/dashboards/admin');
     } else if (req.user.employee) {
@@ -123,30 +131,28 @@ router.get(
 /* End */
 
 /* Google Login Strategy */
-router.get('/federated/google', passport.authenticate('google', { scope: ['profile'] }), (req, res) => {
-  console.log(`> federated/google req: ${req}`);
+router.get('/federated/google', passport.authenticate('google', { scope: ['profile', 'email'] }), (req, res) => {
 });
 router.get(
   '/oauth2/redirect/google',
   passport.authenticate('google', { failureRedirect: '/login', failureMessage: true }),
   (req, res) => {
-    console.log(`> /oauth2/redirect/google req: ${req}`);
     res.redirect('/');
   },
 );
 passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_ID,
-  clientSecret: process.env.GOOGLE_SECRET,
-  callbackURL: 'http://localhost:3000/oauth2/redirect/google',
-}, ((_accessToken, _refreshToken, profile, cb) => {
-  console.log(`> accessToken: ${_accessToken}`);
-  console.log(`> refreshToke: ${_refreshToken}`);
-  console.log(`> profile: ${profile.email}`);
+  clientID: String(process.env.GOOGLE_ID),
+  clientSecret: String(process.env.GOOGLE_SECRET),
+  callbackURL: 'http://localhost:3000/auth/oauth2/redirect/google',
+  passReqToCallback: true,
+}, async (request, accessToken, refreshToken, profile, cb) => {
+  const { emails } = profile;
+  console.log(`> Google Strtegy emails: ${emails[0].value}`);
   try {
-    let account = prisma.account.findFirst({
+    let account = await prisma.account.findFirst({
       where: {
         AND: [
-          { providerId: 'https://accounts.google.com' },
+          { providerId: profile.provider },
           { providerAccountId: profile.id },
         ],
       },
@@ -155,37 +161,45 @@ passport.use(new GoogleStrategy({
           select: {
             givenName: true,
             familyName: true,
+            email: true,
+            employee: {
+              select: {
+                userId: true,
+                isAdmin: true,
+              },
+            },
           },
         },
       },
     });
     if (account === null) {
-      account = prisma.account.create({
+      account = await prisma.account.create({
         data: {
-          providerId: 'https://accounts.google.com',
+          providerId: profile.provider,
           providerAccountId: profile.id,
+          accessToken: String(accessToken),
+          refreshToken: String(refreshToken),
+          scope: 'profile email',
           user: {
             connectOrCreate: {
               where: {
-                email: profile.email,
+                email: emails[0].value,
               },
               create: {
-                data: {
-                  email: profile.email,
-                  emailVerified: new Date(Date.now()),
-                },
+                email: emails[0].value,
+                emailVerified: new Date(Date.now()),
               },
             },
           },
         },
       });
     }
-    return (cb(null, account));
+    return cb(null, account);
   } catch (error) {
     console.error(error);
     return cb(error, null);
   }
-})));
+}));
 /* End */
 
 /* Logout Route */
@@ -199,9 +213,8 @@ router.post('/', (req, res, next) => {
 
 /* GET login page. */
 router.get('/login', (req, res) => {
-  const keys = Object.values(req.session.flash);
-  console.log(`> Object.values(req.session.flash): ${keys}`);
   res.render('login', { title: 'Login to Moscow Ministorage' });
 });
 
 module.exports = router;
+exports.passport = passport;

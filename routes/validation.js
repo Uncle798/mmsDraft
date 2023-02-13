@@ -63,12 +63,29 @@ router.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.error(errors.array());
-      // res.render('login', {
-      //   title: 'Login to Moscow Ministorage',
-      //   errors: errors.array(),
-      // });
+      res.render('/userFirstTime', {
+        errors: errors.array(),
+      });
     } else {
-      res.redirect('/availableunits');
+      try {
+        prisma.user.update({
+          where: {
+            email: req.user.email,
+          },
+          data: {
+            givenName: req.body.givenName,
+            familyName: req.body.familyName,
+          },
+          select: {
+            email: true,
+            givenName: true,
+          },
+        });
+        req.user.givenName = req.body.givenName;
+        res.redirect('/availableunits');
+      } catch (error) {
+        console.log(error);
+      }
     }
   },
 );
@@ -76,7 +93,17 @@ router.post(
 module.exports = router;
 
 // const stateCodes = [
-//   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'PR', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'VI', 'WA', 'WV', 'WI', 'WY',
+//   'AL', 'AK', 'AZ', 'AR',
+//  'CA', 'CO', 'CT', 'DE', 'DC',
+//  'FL', 'GA', 'HI', 'ID', 'IL',
+//  'IN', 'IA', 'KS', 'KY', 'LA',
+//  'ME', 'MD', 'MA', 'MI', 'MN',
+//  'MS', 'MO', 'MT', 'NE', 'NV',
+//  'NH', 'NJ', 'NM', 'NY', 'NC',
+//  'ND', 'OH', 'OK', 'OR', 'PA',
+//  'PR', 'RI', 'SC', 'SD', 'TN',
+//  'TX', 'UT', 'VT', 'VA', 'VI',
+//  'WA', 'WV', 'WI', 'WY',
 // ];
 
 // const zipcodeRegex = /(^d{5}$)|(^d{9}$)|(^d{5}-d{4}$)/;

@@ -169,15 +169,15 @@ model Session {
   id        String   @id
   sid       String   @unique
   data      String
-  expiresAt   DateTime
+  expiresAt DateTime
 }
 
 model Account {
   id                 String    @id @default(cuid())
-  compoundId         String    @unique @map(name: "compound_id")
+  compoundId         String?   @unique @map(name: "compound_id")
   user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             String    @map("user_id")
-  providerType       String    @map("provider_type")
+  providerType       String?   @map("provider_type")
   providerId         String    @map("provider_id")
   providerAccountId  String    @map("provider_account_id")
   refreshToken       String?   @map("refresh_token")
