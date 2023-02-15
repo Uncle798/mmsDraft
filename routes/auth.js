@@ -34,19 +34,23 @@ async function sendEmail(email, name, link) {
 }
 
 passport.serializeUser((user, cb) => {
-  const keys = Object.keys(user.user);
-  console.log(`user keys: ${keys}`);
+  const keys = Object.keys(user.user.employee);
+  console.log(`>>>>>>><<<<<< serializeUser user keys: ${keys}`);
+  const values = Object.values(user.user.employee);
+  console.log(`>>>>>>><<<<<< serializeUser user values: ${values}`);
   process.nextTick(() => {
     let employee = false;
     let isAdmin = false;
-    if (user.employee !== null) {
+    if (user.user.employee !== null) {
+      console.log('user.user.employee !== null');
       employee = true;
-      isAdmin = user.employee.isAdmin !== null;
+      isAdmin = user.user.employee.isAdmin !== undefined;
     }
-    const givenName = user.givenName !== null;
+    const givenName = user.user.givenName !== undefined;
+    console.log(`employee : ${employee}, isAdmin: ${isAdmin}, givenName: ${givenName}`);
     cb(null, {
-      id: user.id,
-      email: user.email,
+      id: user.user.id,
+      email: user.user.email,
       givenName,
       employee,
       isAdmin,
@@ -59,7 +63,17 @@ passport.deserializeUser((user, cb) => {
 });
 
 function redirectUser(user) {
-
+  const keys = Object.keys(user);
+  const values = Object.values(user);
+  console.log(`>>>>>> redirectUser user keys: ${keys} values: ${values} `);
+  if (user.employee.isAdmin) {
+    return '/dashboards/admin';
+  } if (user.employee.userId) {
+    return '/dashboards/employee';
+  } if (user.givenName === undefined) {
+    return '/userfirsttime';
+  }
+  return '/dashboards/customer';
 }
 
 /* Magic Login Strategy */
@@ -75,7 +89,7 @@ const magicLogin = new MagicLoginStrategy({
     try {
       await sendEmail(destination.email, destination.givenName, finalLink);
     } catch (error) {
-      console.error(error);
+      console.error(`>>>>> !!!!! sendEmail error:  ${error}`);
     }
   },
   verify: async (payload, callback) => {
@@ -115,39 +129,35 @@ router.post('/sendlink', magicLogin.send);
 router.get(
   '/magiclogin/callback',
   passport.authenticate('magiclogin', { failureRedirect: '/login', failureFlash: true, failureMessage: 'Magic Login Error' }),
-  (req, res) => {
-    if (req.user.isAdmin) {
-      res.redirect('/dashboards/admin');
-    } else if (req.user.employee) {
-      res.redirect('/dashboards/employee');
-    } else if (!req.user.givenName) {
-      res.redirect('/userfirsttime');
-    } else {
-      res.redirect('/dashboards/customer');
-    }
-    res.redirect('/');
+  (req, res, next) => {
+    console.log(`>>>>>>>>>>>>>>>>>> magicLogin/callback`)
+    const { user } = req.user;
+    req.session.returnTo = redirectUser(user);
+    next();
   },
 );
 /* End */
 
 /* Google Login Strategy */
-router.get('/federated/google', passport.authenticate('google', { scope: ['profile', 'email'] }), (req, res) => {
-});
+router.get('/federated/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
 router.get(
   '/oauth2/redirect/google',
   passport.authenticate('google', { failureRedirect: '/login', failureMessage: true }),
-  (req, res) => {
-    res.redirect('/');
+  (req, res, next) => {
+    const { user } = req.user;
+    req.session.returnTo = redirectUser(user);
+    next();
   },
 );
+
 passport.use(new GoogleStrategy({
   clientID: String(process.env.GOOGLE_ID),
   clientSecret: String(process.env.GOOGLE_SECRET),
   callbackURL: 'http://localhost:3000/auth/oauth2/redirect/google',
   passReqToCallback: true,
 }, async (request, accessToken, refreshToken, profile, cb) => {
-  const { emails } = profile;
-  console.log(`> Google Strtegy emails: ${emails[0].value}`);
+  const { emails, name } = profile;
   try {
     let account = await prisma.account.findFirst({
       where: {
@@ -194,6 +204,26 @@ passport.use(new GoogleStrategy({
         },
       });
     }
+    const keys = Object.keys(account.user);
+    const values = Object.values(account.user);
+    console.log(`>>>>>>>>>>>>>>>>>>>>>>> googleStrategy keys: ${keys} values: ${values}`);
+    if (account.user.givenName === undefined && name.givenName !== undefined) {
+      console.log('account.user.givenName === undefined && name.givenName !== undefined');
+      account = prisma.user.update({
+        where: {
+          email: account.email,
+        },
+        data: {
+          givenName: name.givenName,
+          familyName: name.familyName,
+        },
+        select: {
+          email: true,
+          givenName: true,
+          id: true,
+        },
+      });
+    }
     return cb(null, account);
   } catch (error) {
     console.error(error);
@@ -208,13 +238,12 @@ router.post('/', (req, res, next) => {
   req.logout((err) => {
     if (err) { return next(err); }
     res.redirect('/');
+    return res.end();
   });
 });
 
 /* GET login page. */
-router.get('/login', (req, res) => {
-  res.render('login', { title: 'Login to Moscow Ministorage' });
-});
+router.get('/login', (req, res) => res.render('login', { title: 'Login to Moscow Ministorage' }));
 
 module.exports = router;
 exports.passport = passport;

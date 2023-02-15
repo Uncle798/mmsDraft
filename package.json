@@ -10,6 +10,7 @@
     "@prisma/client": "4.9.0",
     "@quixo3/prisma-session-store": "^3.1.10",
     "browser-sync": "^2.27.11",
+    "connect-ensure-login": "^0.1.1",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "eslint": "^7.32.0 || ^8.2.0",

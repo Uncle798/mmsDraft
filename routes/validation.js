@@ -47,7 +47,7 @@ router.post(
             res.send();
           }
           if (response.body.success === true) {
-            res.render('loginSuccessfullEmailSent');
+            return res.render('loginSuccessfullEmailSent');
           }
         },
       );
@@ -66,26 +66,27 @@ router.post(
       res.render('/userFirstTime', {
         errors: errors.array(),
       });
-    } else {
-      try {
-        prisma.user.update({
-          where: {
-            email: req.user.email,
-          },
-          data: {
-            givenName: req.body.givenName,
-            familyName: req.body.familyName,
-          },
-          select: {
-            email: true,
-            givenName: true,
-          },
-        });
-        req.user.givenName = req.body.givenName;
-        res.redirect('/availableunits');
-      } catch (error) {
-        console.log(error);
-      }
+      return res.end();
+    }
+    try {
+      prisma.user.update({
+        where: {
+          email: req.user.email,
+        },
+        data: {
+          givenName: req.body.givenName,
+          familyName: req.body.familyName,
+        },
+        select: {
+          email: true,
+          givenName: true,
+        },
+      });
+      req.user.givenName = req.body.givenName;
+      res.redirect('/availableunits');
+      return res.end();
+    } catch (error) {
+      console.log(error);
     }
   },
 );

@@ -1,14 +1,19 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-plusplus */
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+import lodash from 'lodash';
 import { unitData, pricingData } from './unitsData.mjs';
+
+const lo = lodash;
 
 const prisma = new PrismaClient();
 
-const earliestStarting = '2022-01-01'; // for leases invoices and payments
+const earliestStarting = '2018-01-01'; // for leases invoices and payments
+const numExtraUsers = 300; // users with past leases or no leases
+const invoicePerReq = 50; // rate limit calls to db
 
 async function deleteAll() {
-  console.log('> Deleting previous records');
-  const startTime = Date.now();
   await prisma.paymentRecord.deleteMany();
   await prisma.invoice.deleteMany();
   await prisma.lease.deleteMany();
@@ -19,77 +24,63 @@ async function deleteAll() {
   await prisma.contactInfo.deleteMany();
   await prisma.employee.deleteMany();
   await prisma.user.deleteMany();
-  const endTime = Date.now();
-  console.log(`> Everything deleted in ${(endTime - startTime) / 1000} sec`);
 }
 
-async function createUnitsWithUsers() {
-  const startTime = Date.now();
-  console.log('> Creating units and users');
-
-  await prisma.pricing.createMany({
+async function createUnits() {
+  const pricing = await prisma.pricing.createMany({
     data: pricingData,
   });
+  const units = await prisma.unit.createMany({
+    data: unitData,
+  });
+}
 
-  for (let i = 0; i < unitData.length; i++) {
-    const sizePrice = pricingData.find(({size})=>{
-        return size === unitData[i].size
-    })
-    const startDate = faker.date.between(new Date(earliestStarting), Date());
-    const givenName = faker.name.firstName();
-    const familyName = faker.name.lastName();
-    const email = faker.internet.email(givenName, familyName);
-    const contactState = faker.address.stateAbbr();
-
-    const dbUnit = await prisma.unit.create({
-      data: unitData[i],
-    });
-    const dbUnitPrice = await prisma.unitPricing.create({
+async function priceUnit() {
+  const units = await prisma.unit.findMany();
+  const pricing = await prisma.pricing.findMany();
+  units.forEach(async (unit) => {
+    const price = pricing.find((p) => p.size === unit.size);
+    const priced = await prisma.unitPricing.create({
       data: {
-        unitNum: dbUnit.num,
-        price: sizePrice.price,
-        startDate,
+        unitNum: unit.num,
+        price: price.price,
+        startDate: new Date(earliestStarting),
       },
     });
-    const dbUser = await prisma.user.create({
-      data: {
-        email,
-        emailVerified: null,
-        givenName,
-        familyName,
-        contactInfo: {
-          create: {
-            address1: faker.address.streetAddress(),
-            address2: faker.address.streetAddress(),
-            city: faker.address.cityName(),
-            state: contactState,
-            zip: faker.address.zipCodeByState(contactState),
-            phoneNum1: faker.phone.number('##########'),
-          },
+  });
+}
+
+async function createUser() {
+  const givenName = faker.name.firstName();
+  const familyName = faker.name.lastName();
+  const email = faker.internet.email(givenName, familyName);
+  const contactState = faker.address.stateAbbr();
+  const dbUser = await prisma.user.create({
+    data: {
+      email,
+      emailVerified: null,
+      givenName,
+      familyName,
+      contactInfo: {
+        create: {
+          address1: faker.address.streetAddress(),
+          address2: faker.address.streetAddress(),
+          city: faker.address.cityName(),
+          state: contactState,
+          zip: faker.address.zipCodeByState(contactState),
+          phoneNum1: faker.phone.number('##########'),
         },
       },
-    });
-  }
-  const numUsers = await prisma.user.count();
-  const firstUser = await prisma.user.findFirst({
-    select: {
-      familyName: true,
-      givenName: true,
     },
   });
-  const endTime = Date.now();
-  console.log(`> ${numUsers} users created in ${(endTime - startTime) / 1000} sec`);
-  console.log(`> First user: ${firstUser.givenName} ${firstUser.familyName}`);
-  return numUsers;
+  return dbUser;
 }
 
 async function createEmployees() {
-  console.log('> Creating employees');
-  const startTime = Date.now;
   let contactState = faker.address.stateAbbr();
   const me = await prisma.user.create({
     data: {
-      email: process.env.MY_EMAIL.toString(),
+      email: String(process.env.MY_EMAIL),
       emailVerified: new Date(Date.now()),
       givenName: 'Eric',
       familyName: 'Branson',
@@ -113,7 +104,7 @@ async function createEmployees() {
   contactState = faker.address.stateAbbr();
   const george = await prisma.user.create({
     data: {
-      email: process.env.GEORGE_EMAIL.toString(),
+      email: String(process.env.GEORGE_EMAIL),
       emailVerified: new Date(Date.now()),
       givenName: 'George',
       familyName: 'Branson',
@@ -137,7 +128,7 @@ async function createEmployees() {
   contactState = faker.address.stateAbbr();
   const fakeEmployee = await prisma.user.create({
     data: {
-      email: process.env.EMPLOYEE_EMAIL.toString(),
+      email: String(process.env.EMPLOYEE_EMAIL),
       emailVerified: null,
       givenName: 'Walter',
       familyName: 'Schlegel',
@@ -158,27 +149,79 @@ async function createEmployees() {
       },
     },
   });
-  const numEmployees = await prisma.employee.count();
-  const endTime = Date.now();
-  console.log(`> ${numEmployees} emmployees created in ${(endTime - startTime) / 1000} sec`);
-  return numEmployees;
+  return Promise.all([me, george, fakeEmployee]);
+}
+
+function monthDif(dateFrom, dateTo) {
+  const DT = new Date(dateTo);
+  const DF = new Date(dateFrom);
+  return DT.getMonth() - DF.getMonth()
+    + (12 * (DT.getFullYear() - DF.getFullYear()));
+}
+
+function randomDate(startDate, endDate) {
+  const returnDate = new Date(new Date(startDate).getTime() + Math.random()
+    * (new Date(endDate).getTime() - new Date(startDate).getTime()));
+  if (returnDate.getDate() > 27) { returnDate.setDate(27); } // gets rid of Feb problems
+  return returnDate;
+}
+
+function subtractMonths(date, numMonths) {
+  let returnDate = new Date();
+  let i = 0;
+  while (i < numMonths) {
+    if (new Date(date).getMonth() === 0) {
+      returnDate = new Date(new Date(date).getFullYear() - 1, '11', new Date(date).getDate());
+    } else {
+      returnDate = new Date(new Date(date).setMonth(new Date(date).getMonth() - 1));
+    }
+    i += 1;
+  }
+  return returnDate;
+}
+
+function addMonths(date, numMonths) {
+  let returnDate = new Date(date);
+  let i = 0;
+  while (i < numMonths) {
+    if (returnDate.getMonth() !== 11) {
+      returnDate = new Date(returnDate.setMonth(returnDate.getMonth() + 1));
+    } else {
+      returnDate = new Date(returnDate.getFullYear() + 1, '00', returnDate.getDate());
+    }
+    i += 1;
+  }
+  return returnDate;
+}
+
+function arrayMonths(startDate, endDate) {
+  let numMonths = monthDif(startDate, endDate);
+  const arrayOfMonths = [];
+  while (numMonths > 0) {
+    arrayOfMonths.push(
+      addMonths(startDate, 1),
+    );
+    numMonths -= 1;
+  }
+  return arrayOfMonths;
 }
 
 async function createLeases() {
-  console.log('> Creating Leases');
-  const startTime = Date.now();
-  const units = await prisma.unit.findMany({});
-  const employees = await prisma.employee.findMany({});
+  const leases = {};
+  const units = await prisma.unitPricing.findMany();
+  const employees = await prisma.employee.findMany();
   const employeeList = [];
   employees.forEach((employee) => {
     employeeList.push(employee.userId.toString());
   });
+  const numUsers = await prisma.user.count();
   const customers = await prisma.user.findMany({
     where: {
       id: {
         notIn: employeeList,
       },
     },
+    take: Math.floor(numUsers * 0.97),
     include: {
       contactInfo: {
         select: {
@@ -187,128 +230,140 @@ async function createLeases() {
       },
     },
   });
-  const pricing = await prisma.unitPricing.findMany({});
-  for (let i = 0; i < units.length; i++) {
-    const unit = units[i];
-    const customer = customers[i];
-    const employee = employees[Math.floor(Math.random()*employees.length)];
-    const unitPrice = pricing.find(({unitNum}) =>{
-        return unitNum === unit.num
-    })
-    const lease = await prisma.lease.create({
-      data: {
-        customerId: customer.id,
-        employeeId: employee.userId,
-        unitNum: unitPrice.unitNum,
-        price: unitPrice.price,
-        leaseEffectiveDate: unitPrice.startDate,
-        contactInfoId: customer.contactInfo[0].id,
-        unitNum: unitPrice.unitNum,
-        price: unitPrice.price,
-      },
-    });
-  }
-  const numLeases = await prisma.lease.count();
-  const endTime = Date.now();
-  console.log(`> ${numLeases} leases created in ${(endTime - startTime) / 1000} sec`);
-  return numLeases;
-}
-
-function monthDif(date) {
-  const currentDate = new Date(Date.now());
-  const dateFrom = new Date(date);
-  return currentDate.getMonth() - dateFrom.getMonth()
-    + (12 * (currentDate.getFullYear() - dateFrom.getFullYear()));
+  units.forEach(async (unit) => {
+    let totalNumMonths = monthDif(earliestStarting, Date.now());
+    let leaseStart = new Date(earliestStarting);
+    let numLeases = Math.floor(Math.random() * 6) + 1; // between 1 & 6 leases per unit
+    const customer = customers.pop();
+    const { contactInfo } = customer;
+    if (numLeases > 0) {
+      let lengthOfLease = 0;
+      if (numLeases === 1) {
+        lengthOfLease = totalNumMonths;
+      } else {
+        lengthOfLease = Math.floor(Math.random() * (totalNumMonths / numLeases) - 2 + 1) + 2;
+      }
+      let leaseEndDate = null;
+      if (monthDif(leaseStart, Date.now()) >= 6) {
+        leaseEndDate = new Date(addMonths(leaseStart, lengthOfLease));
+      } else {
+        leaseEndDate = null;
+        numLeases = 0;
+      }
+      await prisma.lease.create({
+        data: {
+          customerId: customer.id,
+          employeeId: employees[Math.floor(Math.random() * employees.length)].userId,
+          contactInfoId: contactInfo[0].id,
+          unitNum: unit.unitNum,
+          price: unit.price,
+          leaseEffectiveDate: new Date(leaseStart),
+          leaseEnded: leaseEndDate,
+        },
+      });
+      totalNumMonths -= lengthOfLease;
+      // random number of months unit sits empty
+      leaseStart = new Date(addMonths(leaseStart, (lengthOfLease + Math.floor(Math.random * 4))));
+      numLeases -= 1;
+    }
+  });
+  return leases;
 }
 
 async function createInvoices() {
-  console.log('> Creating invoices');
-  const startTime = Date.now();
   const leases = await prisma.lease.findMany();
-  for (let i = 0; i < leases.length; i++) {
-    const startDate = leases[i].leaseEffectiveDate;
-    if (startDate.getDate() > 27) { startDate.setDate(27); } // gets rid of Feb problems
-    const numMonths = monthDif(startDate);
-    let invoiceDate = new Date();
-    if (startDate.getMonth() == 11) {
-      invoiceDate = new Date(startDate.getFullYear() + 1, '00', startDate.getDate());
-    } else {
-      invoiceDate = new Date(startDate.setMonth(startDate.getMonth() + 1));
-    }
-    for (let y = 0; y < numMonths; y++) {
+  leases.forEach(async (lease) => {
+    const startDate = lease.leaseEffectiveDate;
+    const leaseEndDate = lease.leaseEnded ?? Date.now();
+    const invoiceDate = addMonths(startDate, 1);
+    console.log(`> Lease.id ${lease.id}`);
+    const months = arrayMonths(lease.leaseEffectiveDate, leaseEndDate);
+    months.forEach(async (month) => {
       await prisma.invoice.create({
         data: {
-          customerId: leases[i].customerId,
-          leaseId: leases[i].id,
-          amount: leases[i].price,
-          invoiceCreated: invoiceDate,
-          unitNum: leases[i].unitNum,
-          price: leases[i].price,
+          customerId: lease.customerId,
+          leaseId: lease.id,
+          amount: lease.price,
+          invoiceCreated: month,
+          unitNum: lease.unitNum,
+          price: lease.price,
         },
       });
-      if (invoiceDate.getMonth() == 11) {
-        invoiceDate = new Date((invoiceDate.getFullYear() + 1).toString(), '00', invoiceDate.getDate().toString());
-      } else {
-        invoiceDate = new Date(invoiceDate.setMonth(invoiceDate.getMonth() + 1));
-      }
-    }
-  }
-  const numInvoice = await prisma.invoice.count();
-  const endTime = Date.now();
-  console.log(`> ${numInvoice} invoices created in ${(endTime - startTime) / 1000} sec`);
-  return numInvoice;
-}
-
-async function createPayments() {
-  console.log('> Creating Payments');
-  const startTime = Date.now();
-  const invoices = await prisma.invoice.findMany();
-  const paymentType = ['STRIPE', 'CASH', 'CHECK'];
-  const employees = await prisma.employee.findMany();
-
-  for (let i = 0; i < invoices.length; i++) {
-    const invoiceDate = invoices[i].invoiceCreated;
-    let paymentDate = new Date();
-    const paymentSelector = paymentType[Math.floor(Math.random()*paymentType.length)];
-    const employeeSelector = employees[Math.floor(Math.random()*employees.length)];
-    if (invoiceDate.getMonth() == 11) {
-      paymentDate = new Date(paymentDate.getFullYear() + 1, '00', paymentDate.getDate());
-    } else {
-      paymentDate = new Date(paymentDate.setMonth(paymentDate.getMonth() + 1));
-    }
-    await prisma.paymentRecord.create({
-      data: {
-        amount: invoices[i].amount,
-        type: paymentSelector,
-        paymentCompleted: paymentDate,
-        recordNum: faker.datatype.uuid(),
-        reciever: { connect: { userId: employeeSelector.userId } },
-        customer: { connect: { id: invoices[i].customerId } },
-      },
     });
-  }
-  const numPayments = await prisma.paymentRecord.count();
-  const endTime = Date.now();
-  console.log(`> ${numPayments} payments created in ${(endTime - startTime) / 1000} sec`);
-  return numPayments;
+  });
 }
 
-async function main() {
+async function createPayments(invoice, employee) {
+  const paymentType = ['STRIPE', 'CASH', 'CHECK'];
+  const paymentDate = addMonths(invoice.invoiceCreated, 1);
+  const record = await prisma.paymentRecord.create({
+    data: {
+      customerId: invoice.customerId,
+      recieverId: employee.userId,
+      amount: invoice.price,
+      paymentCompleted: paymentDate,
+      paymentCreated: paymentDate,
+      type: paymentType[Math.floor(Math.random() * paymentType.length)],
+      recordNum: faker.datatype.uuid(),
+      invoiceNum: invoice.id,
+      unitNum: invoice.unitNum,
+      unitPrice: invoice.price,
+    },
+  });
+  return record;
+}
+
+let startTime = Date();
+async function createInfrustructure() {
   console.log('> Seeding db .....');
-  const startTime = Date.now();
-  await deleteAll();
-  let numRecords = await createUnitsWithUsers();
-  numRecords += await createEmployees();
-  numRecords += await createLeases();
-  numRecords += await createInvoices();
-  numRecords += await createPayments();
-  const endTime = Date.now();
-  console.log(`> ${numRecords} records created in ${(endTime - startTime) / 1000} sec`);
+  startTime = Date.now();
+  let deleteTime = Date();
+
+  await deleteAll().then(() => {
+    deleteTime = Date.now();
+    console.log(`> Everything deleted in ${deleteTime - startTime} ms`);
+  }).catch((err) => { console.log(`>>>>> seed.mjs Error: ${err}`); });
+  let unitTime = Date();
+  await createUnits();
+  await priceUnit().then(() => {
+    unitTime = Date.now();
+    console.log(`> Units created in ${unitTime - deleteTime} ms`);
+  });
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-}).finally(async () => {
-  await prisma.$disconnect();
-});
+async function createPeople() {
+  let numUsers = unitData.length + numExtraUsers;
+  console.log(`> Creating people ${numUsers}`);
+  while (numUsers > 0) {
+    createUser();
+    numUsers -= 1;
+  }
+  await createEmployees();
+  const userTime = Date.now();
+  console.log(`> users created in ${userTime - startTime} ms`);
+}
+
+async function createFinacials() {
+  console.log('finacials');
+  await createLeases();
+  await createInvoices();
+
+  const employees = await prisma.employee.findMany();
+  const invoices = await prisma.invoice.findMany();
+
+  invoices.forEach(async (invoice) => {
+    await createPayments(invoice, employees[Math.floor(Math.random() * employees.length)]);
+  });
+}
+
+await createInfrustructure();
+await createPeople().then(async () => {
+  await createFinacials();
+})
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
