@@ -134,9 +134,8 @@ router.get(
     const keys = Object.keys(req.user);
     const values = Object.values(req.user);
     console.log(`>>>> ${keys}\r\n ${values}`);
-    console.log(`${typeof user}`);
-    req.session.returnTo = redirectUser(user);
-    next();
+    res.redirect(redirectUser(user));
+    res.send();
   },
 );
 /* End */

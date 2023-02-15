@@ -56,7 +56,7 @@ router.get(
     } else if (req.user.isEmployee) {
       res.render('employeeDashboard', { title: 'Employee Dashboard' });
     } else {
-      res.redirect('/customer')
+      res.redirect('/customer');
     }
   },
 );
