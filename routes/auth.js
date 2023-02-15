@@ -36,18 +36,22 @@ async function sendEmail(email, name, link) {
 
 passport.serializeUser((user, cb) => {
   process.nextTick(() => {
-    let employee = false;
+    const keys = Object.keys(user);
+    const values = Object.values(user);
+    console.log(`>>>> SERIALIZEUSER: ${keys}\r\n ${values}`);
+    const { employee } = user;
+    let isEmployee = false;
     let isAdmin = false;
-    if (user.user.employee !== null) {
-      employee = true;
-      isAdmin = user.user.employee.isAdmin !== undefined;
+    if (keys.length > 0) {
+      isEmployee = true;
+      isAdmin = employee.isAdmin !== undefined;
     }
-    const givenName = user.user.givenName !== undefined;
+    const givenName = user.givenName !== undefined;
     cb(null, {
-      id: user.user.id,
-      email: user.user.email,
+      id: user.id,
+      email: user.email,
       givenName,
-      employee,
+      isEmployee,
       isAdmin,
     });
   });
@@ -58,14 +62,17 @@ passport.deserializeUser((user, cb) => {
 });
 
 function redirectUser(user) {
+  const keys = Object.keys(user.employee);
+  const values = Object.values(user.employee);
+  console.log(`>>>> REDIRECT USER  ${keys}\r\n ${values}`);
   if (user.employee.isAdmin) {
-    return '/dashboards/admin';
+    return '/admin';
   } if (user.employee.userId) {
-    return '/dashboards/employee';
+    return '/employee';
   } if (user.givenName === undefined) {
     return '/userfirsttime';
   }
-  return '/dashboards/customer';
+  return '/customer';
 }
 
 /* Magic Login Strategy */
@@ -123,7 +130,11 @@ router.get(
   '/magiclogin/callback',
   passport.authenticate('magiclogin', { failureRedirect: '/login', failureFlash: true, failureMessage: 'Magic Login Error' }),
   (req, res, next) => {
-    const { user } = req.user;
+    const { user } = req;
+    const keys = Object.keys(req.user);
+    const values = Object.values(req.user);
+    console.log(`>>>> ${keys}\r\n ${values}`);
+    console.log(`${typeof user}`);
     req.session.returnTo = redirectUser(user);
     next();
   },

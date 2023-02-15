@@ -12,7 +12,6 @@ const passport = require('passport');
 const prisma = require('./lib/db');
 
 const indexRouter = require('./routes/index');
-const dashboardRouter = require('./routes/dashboards');
 const authRouter = require('./routes/auth');
 const validationRouter = require('./routes/validation');
 
@@ -47,7 +46,6 @@ app.use(flash());
 
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
-app.use('/dashboards', dashboardRouter);
 app.use('/validation', validationRouter);
 
 // catch 404 and forward to error handler
@@ -59,7 +57,7 @@ app.use((req, res, next) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   // set locals, only providing error in development
-  console.log(`> app.js err: ${err}`);
+  console.error(`> app.js err: ${err}`);
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
