@@ -1,8 +1,6 @@
 const express = require('express');
 const ensureLogin = require('connect-ensure-login').ensureLoggedIn;
 
-const debug = require('debug')('mmsServer');
-
 const router = express.Router();
 
 /* Admin Dashboard. */

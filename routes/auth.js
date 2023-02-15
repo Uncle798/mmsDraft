@@ -1,4 +1,5 @@
 /* eslint-disable linebreak-style */
+/* eslint-disable no-console */
 const express = require('express');
 
 const router = express.Router();
@@ -34,20 +35,14 @@ async function sendEmail(email, name, link) {
 }
 
 passport.serializeUser((user, cb) => {
-  const keys = Object.keys(user.user.employee);
-  console.log(`>>>>>>><<<<<< serializeUser user keys: ${keys}`);
-  const values = Object.values(user.user.employee);
-  console.log(`>>>>>>><<<<<< serializeUser user values: ${values}`);
   process.nextTick(() => {
     let employee = false;
     let isAdmin = false;
     if (user.user.employee !== null) {
-      console.log('user.user.employee !== null');
       employee = true;
       isAdmin = user.user.employee.isAdmin !== undefined;
     }
     const givenName = user.user.givenName !== undefined;
-    console.log(`employee : ${employee}, isAdmin: ${isAdmin}, givenName: ${givenName}`);
     cb(null, {
       id: user.user.id,
       email: user.user.email,
@@ -63,9 +58,6 @@ passport.deserializeUser((user, cb) => {
 });
 
 function redirectUser(user) {
-  const keys = Object.keys(user);
-  const values = Object.values(user);
-  console.log(`>>>>>> redirectUser user keys: ${keys} values: ${values} `);
   if (user.employee.isAdmin) {
     return '/dashboards/admin';
   } if (user.employee.userId) {
@@ -89,6 +81,7 @@ const magicLogin = new MagicLoginStrategy({
     try {
       await sendEmail(destination.email, destination.givenName, finalLink);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(`>>>>> !!!!! sendEmail error:  ${error}`);
     }
   },
@@ -130,7 +123,6 @@ router.get(
   '/magiclogin/callback',
   passport.authenticate('magiclogin', { failureRedirect: '/login', failureFlash: true, failureMessage: 'Magic Login Error' }),
   (req, res, next) => {
-    console.log(`>>>>>>>>>>>>>>>>>> magicLogin/callback`)
     const { user } = req.user;
     req.session.returnTo = redirectUser(user);
     next();
@@ -234,7 +226,6 @@ passport.use(new GoogleStrategy({
 
 /* Logout Route */
 router.post('/', (req, res, next) => {
-  // eslint-disable-next-line consistent-return
   req.logout((err) => {
     if (err) { return next(err); }
     res.redirect('/');

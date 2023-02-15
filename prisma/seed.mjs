@@ -1,8 +1,11 @@
+/* eslint-disable no-console */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-plusplus */
 import { PrismaClient } from '@prisma/client';
-import { faker } from '@faker-js/faker';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import * as faker from '@faker-js/faker';
 import lodash from 'lodash';
+// eslint-disable-next-line import/extensions
 import { unitData, pricingData } from './unitsData.mjs';
 
 const lo = lodash;
@@ -51,10 +54,10 @@ async function priceUnit() {
 }
 
 async function createUser() {
-  const givenName = faker.name.firstName();
-  const familyName = faker.name.lastName();
-  const email = faker.internet.email(givenName, familyName);
-  const contactState = faker.address.stateAbbr();
+  const givenName = faker.faker.name.firstName();
+  const familyName = faker.faker.name.lastName();
+  const email = faker.faker.internet.email(givenName, familyName);
+  const contactState = faker.faker.address.stateAbbr();
   const dbUser = await prisma.user.create({
     data: {
       email,
@@ -63,12 +66,12 @@ async function createUser() {
       familyName,
       contactInfo: {
         create: {
-          address1: faker.address.streetAddress(),
-          address2: faker.address.streetAddress(),
-          city: faker.address.cityName(),
+          address1: faker.faker.address.streetAddress(),
+          address2: faker.faker.address.streetAddress(),
+          city: faker.faker.address.cityName(),
           state: contactState,
-          zip: faker.address.zipCodeByState(contactState),
-          phoneNum1: faker.phone.number('##########'),
+          zip: faker.faker.address.zipCodeByState(contactState),
+          phoneNum1: faker.faker.phone.number('##########'),
         },
       },
     },
@@ -77,7 +80,7 @@ async function createUser() {
 }
 
 async function createEmployees() {
-  let contactState = faker.address.stateAbbr();
+  let contactState = faker.faker.address.stateAbbr();
   const me = await prisma.user.create({
     data: {
       email: String(process.env.MY_EMAIL),
@@ -86,12 +89,12 @@ async function createEmployees() {
       familyName: 'Branson',
       contactInfo: {
         create: {
-          address1: faker.address.streetAddress(),
-          address2: faker.address.streetAddress(),
-          city: faker.address.cityName(),
+          address1: faker.faker.address.streetAddress(),
+          address2: faker.faker.address.streetAddress(),
+          city: faker.faker.address.cityName(),
           state: contactState,
-          zip: faker.address.zipCodeByState(contactState),
-          phoneNum1: faker.phone.number('##########'),
+          zip: faker.faker.address.zipCodeByState(contactState),
+          phoneNum1: faker.faker.phone.number('##########'),
         },
       },
       employee: {
@@ -101,7 +104,7 @@ async function createEmployees() {
       },
     },
   });
-  contactState = faker.address.stateAbbr();
+  contactState = faker.faker.address.stateAbbr();
   const george = await prisma.user.create({
     data: {
       email: String(process.env.GEORGE_EMAIL),
@@ -110,12 +113,12 @@ async function createEmployees() {
       familyName: 'Branson',
       contactInfo: {
         create: {
-          address1: faker.address.streetAddress(),
-          address2: faker.address.streetAddress(),
-          city: faker.address.cityName(),
+          address1: faker.faker.address.streetAddress(),
+          address2: faker.faker.address.streetAddress(),
+          city: faker.faker.address.cityName(),
           state: contactState,
-          zip: faker.address.zipCodeByState(contactState),
-          phoneNum1: faker.phone.number('##########'),
+          zip: faker.faker.address.zipCodeByState(contactState),
+          phoneNum1: faker.faker.phone.number('##########'),
         },
       },
       employee: {
@@ -125,7 +128,7 @@ async function createEmployees() {
       },
     },
   });
-  contactState = faker.address.stateAbbr();
+  contactState = faker.faker.address.stateAbbr();
   const fakeEmployee = await prisma.user.create({
     data: {
       email: String(process.env.EMPLOYEE_EMAIL),
@@ -134,12 +137,12 @@ async function createEmployees() {
       familyName: 'Schlegel',
       contactInfo: {
         create: {
-          address1: faker.address.streetAddress(),
-          address2: faker.address.streetAddress(),
-          city: faker.address.cityName(),
+          address1: faker.faker.address.streetAddress(),
+          address2: faker.faker.address.streetAddress(),
+          city: faker.faker.address.cityName(),
           state: contactState,
-          zip: faker.address.zipCodeByState(contactState),
-          phoneNum1: faker.phone.number('##########'),
+          zip: faker.faker.address.zipCodeByState(contactState),
+          phoneNum1: faker.faker.phone.number('##########'),
         },
       },
       employee: {
@@ -304,7 +307,7 @@ async function createPayments(invoice, employee) {
       paymentCompleted: paymentDate,
       paymentCreated: paymentDate,
       type: paymentType[Math.floor(Math.random() * paymentType.length)],
-      recordNum: faker.datatype.uuid(),
+      recordNum: faker.faker.datatype.uuid(),
       invoiceNum: invoice.id,
       unitNum: invoice.unitNum,
       unitPrice: invoice.price,
