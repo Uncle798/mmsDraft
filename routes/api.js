@@ -3,16 +3,53 @@ const { ensureLoggedIn } = require('connect-ensure-login');
 
 const router = express.Router();
 const prisma = require('../lib/db');
+const { contactInfo } = require('../lib/db');
 
-router.get(
+router.put(
+  '/users/stripeid',
+  ensureLoggedIn(),
+  async (req, res, next) => {
+    const { user, body } = req;
+    const dbUser = await prisma.user.update({
+      where: { email: user.email },
+      data: { stripeId: body.stripeId },
+      select: {
+        email: true,
+        familyName: true,
+        givenName: true,
+        id: true,
+      },
+      include: { employee: true },
+    });
+    res.json(dbUser);
+    next();
+  },
+);
+
+router.post(
   '/user/contactInfo',
   ensureLoggedIn(),
   async (req, res, next) => {
-    const user = await prisma.user.findUnique({
-      where: { email: req.body },
-      include: { contactInfo: true },
+    const data = req.body;
+    const contactInfo = await prisma.contactInfo.create({
+      data,
     });
-    res.body = user;
+    res.json(contactInfo);
+    next();
+  },
+);
+
+router.get(
+  '/:userId/:contactInfo',
+  ensureLoggedIn(),
+  async (req, res, next) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.userId },
+      include: { contactInfo: {
+        where: { id: contactInfo}
+      } },
+    });
+    res.json(user);
     next();
   },
 );
@@ -25,7 +62,7 @@ router.get(
       where: { email: req.body },
       include: { customerLeases: true },
     });
-    res.body = customer;
+    res.json(customer);
     next();
   },
 );
@@ -43,7 +80,7 @@ router.get(
         unitPrice: true,
       },
     });
-    res.body = customers;
+    res.json(customers);
     next();
   },
 );
