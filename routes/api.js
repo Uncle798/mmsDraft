@@ -3,15 +3,16 @@ const { ensureLoggedIn } = require('connect-ensure-login');
 
 const router = express.Router();
 const prisma = require('../lib/db');
-const { contactInfo } = require('../lib/db');
+
+router.get('/', (req, res, next) => { res.render('index'); });
 
 router.put(
   '/users/stripeid',
   ensureLoggedIn(),
   async (req, res, next) => {
-    const { user, body } = req;
+    const { body } = req;
     const dbUser = await prisma.user.update({
-      where: { email: user.email },
+      where: { email: body.email },
       data: { stripeId: body.stripeId },
       select: {
         email: true,
@@ -45,9 +46,11 @@ router.get(
   async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: { id: req.params.userId },
-      include: { contactInfo: {
-        where: { id: contactInfo}
-      } },
+      include: {
+        contactInfo: {
+          where: { id: req.params.contactInfo },
+        },
+      },
     });
     res.json(user);
     next();
@@ -55,11 +58,11 @@ router.get(
 );
 
 router.get(
-  '/user/leases',
+  '/:user/leases',
   ensureLoggedIn(),
   async (req, res, next) => {
     const customer = await prisma.user.findUnique({
-      where: { email: req.body },
+      where: { email: req.params.user },
       include: { customerLeases: true },
     });
     res.json(customer);
@@ -69,16 +72,16 @@ router.get(
 
 router.get(
   '/currentcustomers',
-  ensureLoggedIn(),
   async (req, res, next) => {
     const customers = await prisma.lease.findMany({
       where: {
-        leaseEnded: null,
+        leaseEnded: { equals: null },
       },
       include: {
         customer: true,
         unitPrice: true,
       },
+      orderBy: { unitNum: 'asc' },
     });
     res.json(customers);
     next();

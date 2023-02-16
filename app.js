@@ -14,6 +14,7 @@ const prisma = require('./lib/db');
 const indexRouter = require('./routes/index');
 const authRouter = require('./routes/auth');
 const validationRouter = require('./routes/validation');
+const apiRouter = require('./routes/api');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use(session({
 app.use(passport.session());
 app.use(flash());
 
+app.unsubscribe('/api', apiRouter);
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/validation', validationRouter);

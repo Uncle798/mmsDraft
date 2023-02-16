@@ -81,7 +81,7 @@ const magicLogin = new MagicLoginStrategy({
   callbackURL: '/auth/magiclogin/callback',
   sendMagicLink: async (destination, href) => {
     const linkString = String(href);
-    const baseLinkString = String(process.env.BASE_URL);
+    const baseLinkString = String(`${process.env.BASE_URL}:${process.env.BROWSER_SYNC_PORT}`);
     const finalLink = baseLinkString
       .concat('/auth/magiclogin/callback')
       .concat(linkString.substring(linkString.indexOf('?')));

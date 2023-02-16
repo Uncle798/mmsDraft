@@ -2,7 +2,7 @@ const express = require('express');
 
 const router = express.Router();
 const needle = require('needle');
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, checkSchema } = require('express-validator');
 const prisma = require('../lib/db');
 const { stateCodes, phoneRegex } = require('../lib/validation');
 
@@ -92,47 +92,82 @@ router.post(
   },
 );
 
-/** Contact Info Form */
-router.post(
-  '/contactinfoform',
-  body(['address1, city']).trim().escape().isString()
-    .isAlphanumeric(),
-  body(['address2, address3']).trim().escape().isString()
-    .isAlphanumeric()
-    .optional(),
-  body(['state']).trim().escape().isString()
-    .isAlphanumeric()
-    .toUpperCase()
-    .matches(stateCodes),
-  body(['zipcode']).trim().escape()
-    .isPostalCode('US')
-    .toString(),
-  body(['phone2']).trim().escape()
-    .matches(phoneRegex)
-    .toString(),
-  body(['phone2']).trim().escape()
-    .matches(phoneRegex)
-    .optional()
-    .toString(),
-  (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      console.error(errors.array());
-      // res.render('login', {
-      //   title: 'Login to Moscow Ministorage',
-      //   errors: errors.array(),
-      // });
-    } else {
-      needle.post(
-        '/api/user/contactInfo',
-        req.body,
-        (err, response) => {
-          res.json(response);
-          res.send();
-        },
-      );
-    }
+const contactInfoSchema = {
+  addesss1: {
+    in: ['body'],
+    trim: true,
+    escape: true,
+    isString: true,
   },
-);
+  address2: {
+    in: ['body'],
+    trim: true,
+    escape: true,
+    isString: true,
+    optional: { options: { nullable: true } },
+  },
+  address3: {
+    in: ['body'],
+    trim: true,
+    escape: true,
+    isString: true,
+    optional: { options: { nullable: true } },
+  },
+  state: {
+    in: ['body'],
+    trim: true,
+    escape: true,
+    isString: true,
+    toUpperCase: true,
+    matches: stateCodes,
+  },
+  zipcode: {
+    in: ['body'],
+    trim: true,
+    escape: true,
+    isPostalCode: { options: 'US' },
+    toString: true,
+  },
+  phone1: {
+    in: ['body'],
+    trim: true,
+    escape: true,
+    matches: phoneRegex,
+    toString: true,
+  },
+  phone2: {
+    in: ['body'],
+    trim: true,
+    escape: true,
+    matches: phoneRegex,
+    toString: true,
+    optional: { options: { nullable: true } },
+  },
+};
+
+/** Contact Info Form */
+// router.post(
+//   '/contactinfoform',
+//   checkSchema(contactInfoSchema),
+//   (req, res) => {
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       console.error(errors.array());
+//       res.render('login', {
+//         title: 'Login to Moscow Ministorage',
+//         errors: errors.array(),
+//       });
+//     } else {
+//       needle.post(
+//         '/api/user/contactInfo',
+//         req.body,
+//         (err, response) => {
+//           res.json(response);
+//           res.send();
+//         },
+//       );
+//     }
+//   },
+// );
 
 module.exports = router;
