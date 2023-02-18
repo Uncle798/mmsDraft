@@ -40,3 +40,11 @@ li button {
   background-color: #ee9d9d;
 
 }
+
+label {
+  margin: 5px;
+}
+
+input {
+  margin: 5px;
+}
