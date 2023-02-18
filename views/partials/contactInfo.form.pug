@@ -39,3 +39,10 @@
         </label>
     </form>
 </div>
+
+extends layout
+
+block content
+    form(action="/validation/contactinfoform", method="post") 
+        label(for="address1") Address (1):
+        input#(type="text", name="address1", required, placeholder="123 Example St", minlength="")

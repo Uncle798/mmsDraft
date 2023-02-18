@@ -1,0 +1,16 @@
+
+extends layout
+
+head 
+    link(rel="stylesheet", href="/stylesheets/footer.module.css")
+body 
+    ul 
+        li a(href="#{baseLink}/") Home 
+        li a(href="#{baseLink}/auth/login") Login
+        li a(href="#{baseLink}/admin") Admin dashboard
+        li a(href="#{baseLink}/customer") Customer dashboard
+        li a(href="#{baseLink}/employee") Employee dashboard 
+        li a(href="#{baseLink}/userfirsttime") User first time
+        li a(href="#{baseLink}/availableunits") Available units 
+        li form(action="/auth", method="post")
+            button.btn.btn-primary(type='submit') Sign out 
