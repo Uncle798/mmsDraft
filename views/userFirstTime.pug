@@ -1,15 +1,10 @@
-<h1>{{title}}</h1>
-<form action="/validation/userfirsttime" method="post">
-    <label for="Given Name" id="givenName">Given Name:</label>
-    <input type="text" id="givenName" name="givenName" autofocus required minlength="2" maxlength="200"
-        autocomplete="Given Name" />
-
-    <label for="Family Name" id="familyName">Family Name:</label>
-    <input type="text" id="familyName" name="familyName" autofocus required minlength="2" maxlength="200"
-        autocomplete="Family Name" />
-    <button type="submit">Submit</button>
-</form>
-
 extends layout 
 block content
-    h1  title
+    h1  #{title}
+    form(action="/validation/userfirsttime" method="post")
+        label(for="givenName" id="givenName") Given Name: 
+            input(type="text" id="givenName" autofocus required minlength="2" maxlength="100" placeholder="Given name")
+        label(for="givenName" id="familyName") Family Name:
+            input(type="text" id="familyName" autofocus required minlength="2" maxlength="100" placeholder="Family name")
+        button(type="submit") Submit
+        
