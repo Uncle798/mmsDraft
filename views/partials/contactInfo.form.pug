@@ -1,48 +1,23 @@
-<div>
-    <form action="/validation/contactinfoform" method="post">
-        <label>
-            Address:
-            <input type="text" id="address1" required minlength="5" maxlength="200" autofocus />
-        </label>
-        <label>
-            Address line 2:
-            <input type="text" id="address2" minlength="5" maxlength="200" />
-        </label>
-        <label>
-            Address line 3:
-            <input type="text" id="address3" minlength="5" maxlength="200" />
-        </label>
-        <label>
-            City:
-            <input type="text" id="city" minlength="5" maxlength="200" required />
-        </label>
-        <label>
-            State:
-            <select id="state">
-                {{#each state}}
-                {{/{{#each states as |state|}}
-                <option value="{{state}}">{{state}}</option>
-                {{/each}}}}
-            </select>
-        </label>
-        <label>
-            Zip Code:
-            <input type="text" id="zipcode" minlength="5" maxlength="10" required />
-        </label>
-        <label>
-            Phone:
-            <input type="text" id="phone1" minlength="10" maxlength="10" required />
-        </label>
-        <label>
-            Phone 2:
-            <input type="text" id="phone2" minlength="10" maxlength="10" />
-        </label>
-    </form>
-</div>
-
 extends layout
 
 block content
     form(action="/validation/contactinfoform", method="post") 
         label(for="address1") Address (1):
-        input#(type="text", name="address1", required, placeholder="123 Example St", minlength="")
+            input(type="text", name="address1", required, autofocus, placeholder="123 Example St", minlength="5", maxlength="200")
+        label(for="address2") Address (2):
+            input(type="text", name="address2", placeholder="Suite 102", minlength="5", maxlength="200")
+        label(for="address3") Address (3):
+            input(type="text", name="address3", placeholder="Attn Accounting", minlength="2", maxlength="200")
+        div(class="city-state-zip")
+            label(for="city") City: 
+                input(type="text", name="city", required, placeholder="Moscow", minlength="2", maxlength="200")
+            label(for="state") State: 
+                select(name="state")
+                    each state in states 
+                        option(value=state) #{state}
+            label(for="zipcode") Zipcode: 
+                input(type="text", name="zipcode", required, placeholder="83843", minlength="5", maxlength="9")
+        label(for="phone1") Phone 1:
+            input(type="tel", name="phone1", pattern="[0-9]{3}-[0-9]{2}-[0-9]{3}", required, placeholder='2088826564')
+        label(for="phone2") Phone 2:
+            input(type="tel", name="phone2", pattern="[0-9]{3}-[0-9]{2}-[0-9]{3}", placeholder='2088826564')

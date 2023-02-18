@@ -6,3 +6,29 @@ html(lang='en')
     link(rel="stylesheet", href="/stylesheets/style.css", attr)
     link(rel="icon", href="/images/favicon.ico")
   body
+    block content
+    block foot
+      #footer
+        .container
+          ul 
+            li 
+              a(href="/") Home 
+            li 
+              a(href="/auth/login") Login
+            li 
+              a(href="/admin") Admin dashboard
+            li 
+              a(href="/customer") Customer dashboard
+            li 
+              a(href="/employee") Employee dashboard 
+            li 
+              a(href="/userfirsttime") User first time
+            li 
+              a(href="/availableunits") Available units 
+            li 
+              form(action="/auth", method="post")
+                button.btn.btn-primary(type='submit') Sign out 
+          p
+          | &copy; 2023 |
+          i.fa.fa-value(aria-hidden='true') &nbsp;
+          a(href='#') View Source
