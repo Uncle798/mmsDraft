@@ -6,16 +6,17 @@ module.exports = {
     node: true,
   },
   extends: 'airbnb-base',
-  overrides: [
-  ],
   parserOptions: {
     ecmaVersion: 'latest',
   },
   rules: {
     'linebreak-style': 0,
-    'allowForLoopAfterthoughts': 0,
+    allowForLoopAfterthoughts: 0,
   },
-  ignorePatterns: {
-    '**/prismaScratchPad.mjs': true,
-  }
+  ignorePatterns: [
+    '** /prismaScratchPad.mjs',
+  ],
+  plugins: [
+    'pug',
+  ],
 };
