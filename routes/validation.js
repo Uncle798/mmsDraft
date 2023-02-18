@@ -2,30 +2,31 @@ const express = require('express');
 
 const router = express.Router();
 const needle = require('needle');
-const { body, validationResult, checkSchema } = require('express-validator');
+const { body, validationResult } = require('express-validator');
+const Joi = require('joi');
 const prisma = require('../lib/db');
-const { stateCodes, phoneRegex } = require('../lib/validation');
+const { baseLink } = require('../lib/baseLink');
+const { stateCodes, phoneRegex, zipcodeRegex } = require('../lib/validation');
 
-const sendLinkUrl = `${process.env.BASE_URL}/auth/sendlink`;
+const sendLinkUrl = `${baseLink}/auth/sendlink`;
 
 /** Login Form  */
+
 router.post(
   '/loginform',
-  body('email', 'Email required').trim().isEmail().escape(),
   async (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      console.error(errors.array());
-      // res.render('login', {
-      //   title: 'Login to Moscow Ministorage',
-      //   errors: errors.array(),
-      // });
-    } else {
-      const dbUser = await prisma.user.findUnique({
-        where: {
-          email: req.body.email,
-        },
+    const keys = Object.keys(req.body);
+    const { email } = req.body;
+    const result = Joi.assert(email, Joi.string().email());
+    console.log(`>>>>> validation loginForm: ${result}`);
+    if (result) {
+      console.error(result);
+      res.render('login', {
+        title: 'Login to Moscow Ministorage',
+        result,
       });
+    } else {
+      const dbUser = await prisma.user.findUnique({ where: { email } });
       let givenName = '';
       if (!dbUser) {
         givenName = 'Guest';
@@ -40,16 +41,18 @@ router.post(
             givenName,
           },
         },
-        { json: true },
+        {
+          json: true,
+          port: process.env.BROWSER_SYNC_PORT,
+        },
         (err, response) => {
           if (err) {
             console.error(err);
             res.set(err);
-            res.send();
           }
-          if (response.body.success === true) {
-            return res.render('loginSuccessfullEmailSent');
-          }
+          const keys = Object.keys(response.body)
+          console.log(`>>>> needle.post response.body: ${keys}`);
+          return res.render('loginSuccessfullEmailSent');
         },
       );
     }
@@ -57,11 +60,15 @@ router.post(
 );
 
 /** Name form  */
+const userFirstTimeSchema = Joi.object({
+  givenName: Joi.string().trim().alphanum(),
+  familyName: Joi.string().trim().alphanum(),
+});
+
 router.post(
   '/userfirsttime',
-  body(['givenName, familyName']).trim().escape().isAlpha(),
   async (req, res, next) => {
-    const errors = validationResult(req);
+    const {error, value} = userFirstTimeSchema.validate(req.body)
     if (!errors.isEmpty()) {
       console.error(errors.array());
       res.render('/userFirstTime', {
@@ -92,82 +99,44 @@ router.post(
   },
 );
 
-const contactInfoSchema = {
-  addesss1: {
-    in: ['body'],
-    trim: true,
-    escape: true,
-    isString: true,
-  },
-  address2: {
-    in: ['body'],
-    trim: true,
-    escape: true,
-    isString: true,
-    optional: { options: { nullable: true } },
-  },
-  address3: {
-    in: ['body'],
-    trim: true,
-    escape: true,
-    isString: true,
-    optional: { options: { nullable: true } },
-  },
-  state: {
-    in: ['body'],
-    trim: true,
-    escape: true,
-    isString: true,
-    toUpperCase: true,
-    matches: stateCodes,
-  },
-  zipcode: {
-    in: ['body'],
-    trim: true,
-    escape: true,
-    isPostalCode: { options: 'US' },
-    toString: true,
-  },
-  phone1: {
-    in: ['body'],
-    trim: true,
-    escape: true,
-    matches: phoneRegex,
-    toString: true,
-  },
-  phone2: {
-    in: ['body'],
-    trim: true,
-    escape: true,
-    matches: phoneRegex,
-    toString: true,
-    optional: { options: { nullable: true } },
-  },
-};
-
 /** Contact Info Form */
-// router.post(
-//   '/contactinfoform',
-//   checkSchema(contactInfoSchema),
-//   (req, res) => {
-//     const errors = validationResult(req);
-//     if (!errors.isEmpty()) {
-//       console.error(errors.array());
-//       res.render('login', {
-//         title: 'Login to Moscow Ministorage',
-//         errors: errors.array(),
-//       });
-//     } else {
-//       needle.post(
-//         '/api/user/contactInfo',
-//         req.body,
-//         (err, response) => {
-//           res.json(response);
-//           res.send();
-//         },
-//       );
-//     }
-//   },
-// );
+const contactInfoSchema = Joi.object({
+  organizationName: Joi.string().trim(),
+  address1: Joi.string().trim(),
+  address2: Joi.string().trim().optional(),
+  address3: Joi.string().trim().optional(),
+  city: Joi.string().trim(),
+  state: Joi.string().valid(JSON.stringify(stateCodes)),
+  zip: Joi.string().regex(zipcodeRegex),
+  phoneNum1: Joi.string().regex(phoneRegex),
+  phoneNum2: Joi.string().regex(phoneRegex).optional()
+});
+
+router.post(
+  '/contactinfoform',
+  (req, res) => {
+    const {errors, result} = contactInfoSchema.validate(req.body)
+    if (!errors.isEmpty()) {
+      console.error(errors.array());
+      res.render('login', {
+        title: 'Login to Moscow Ministorage',
+        errors: errors.array(),
+      });
+    } else {
+      needle.post(
+        `${baseLink}/api/user/contactInfo`,
+        req.body,
+        {
+          json: true,
+          port: process.env.BROWSER_SYNC_PORT,
+        },
+        (err, response) => {
+          res.json(response);
+          res.send();
+        },
+      );
+    }
+  },
+);
 
 module.exports = router;
