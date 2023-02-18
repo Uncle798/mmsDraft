@@ -3,10 +3,12 @@
 
 <div>
     <ul>
-        {{{{#each keys }}
+        {{#each body.userid }}
 
+        <li>{{this}} Key</li>
+        {{/each }}
+        {{#each values}}
         <li>{{this}}</li>
-        {{/each}}}}
-        <li>key</li>
+        {{/each}}
     </ul>
 </div>

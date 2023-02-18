@@ -3,30 +3,38 @@ const { ensureLoggedIn } = require('connect-ensure-login');
 
 const router = express.Router();
 const prisma = require('../lib/db');
+const { addMonths, subtractMonths } = require('../lib/dateHelpers');
+const { values } = require('lodash');
 
 router.get('/', (req, res, next) => { res.render('index'); });
 
-router.put(
-  '/users/stripeid',
-  ensureLoggedIn(),
+router.get(
+  '/user/currentinfo',
+  // ensureLoggedIn(),
   async (req, res, next) => {
-    const { body } = req;
-    const dbUser = await prisma.user.update({
-      where: { email: body.email },
-      data: { stripeId: body.stripeId },
-      select: {
-        email: true,
-        familyName: true,
-        givenName: true,
-        id: true,
-      },
-      include: { employee: true },
+    const user = await prisma.user.findUnique({
+      where: { id: req.query.data },
+      include: {
+        customerLeases: {
+          include: {
+            invoices: {
+              where: { invoiceCreated: { lte: new Date(subtractMonths(Date.now(), 12)) } },
+              include: { paymentRecord: true, }
+            },
+          }
+        },
+        contactInfo: {
+          where: { softDelete: false }
+        }
+      }
     });
-    res.json(dbUser);
-    next();
-  },
-);
+    res.json(user);
+    res.send();
+  }
+)
 
+
+/** Contact Info  */
 router.post(
   '/user/contactInfo',
   ensureLoggedIn(),
@@ -56,6 +64,9 @@ router.get(
     next();
   },
 );
+/** /contactInfo */
+
+
 
 router.get(
   '/:user/leases',
@@ -70,20 +81,48 @@ router.get(
   },
 );
 
+/** Admin apis */
+
 router.get(
   '/currentcustomers',
   async (req, res, next) => {
     const customers = await prisma.lease.findMany({
-      where: {
-        leaseEnded: { equals: null },
-      },
-      include: {
-        customer: true,
-        unitPrice: true,
+      // where: {
+      //   leaseEnded: { equals: null },
+      // },
+      select: {
+        unitNum: true,
+        price: true,
+        leaseEffectiveDate: true,
+        customer: {
+          include: {
+            contactInfo: true,
+          },
+        },
       },
       orderBy: { unitNum: 'asc' },
     });
-    res.json(customers);
+    await res.json(customers);
+  },
+);
+
+router.put(
+  '/users/stripeid',
+  ensureLoggedIn(),
+  async (req, res, next) => {
+    const { body } = req;
+    const dbUser = await prisma.user.update({
+      where: { email: body.email },
+      data: { stripeId: body.stripeId },
+      select: {
+        email: true,
+        familyName: true,
+        givenName: true,
+        id: true,
+      },
+      include: { employee: true },
+    });
+    res.json(dbUser);
     next();
   },
 );

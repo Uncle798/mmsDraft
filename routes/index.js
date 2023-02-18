@@ -1,6 +1,9 @@
 const express = require('express');
 const { ensureLoggedIn } = require('connect-ensure-login');
 const needle = require('needle');
+const { baseLink } = require('../lib/baseLink');
+const { body } = require('express-validator');
+const { response } = require('express');
 
 const router = express.Router();
 
@@ -28,24 +31,20 @@ router.get(
   // eslint-disable-next-line no-unused-vars
   async (req, res, next) => {
     if (req.user.isAdmin) {
-      let keys = {};
-      let values = {};
+      let body = {};
       needle.get(
         'http://localhost:3002/api/currentcustomers',
-        { port: 3002, localPort: 3000 },
-        (err, response) => {
-          if (err) {
-            console.error(err);
+        (error, response) => {
+          if (error) {
+            console.error(error);
+          } else {
+            body = response.body;
           }
-          keys = Object.keys(response.body);
-          values = Object.values(response.body)
-          console.log(`> ${values}`);
         },
       );
       res.render('adminDashboard', {
         title: 'Admin Dashboard',
-        keys,
-        values,
+        body,
       });
     } else {
       res.redirect('/customer');
@@ -64,10 +63,28 @@ router.get(
     } else if (req.user.isEmployee) {
       res.redirect('/employee');
     } else {
-      res.render('customerDashboard', { title: 'Customer Dashboard' });
+      let data = {}
+      console.log(req.user)
+      needle.request(
+        'GET',
+        `${baseLink}/api/user/currentinfo`,
+        { data: req.user.id },
+        {
+          port: process.env.BROWSER_SYNC_PORT
+        },
+        (error, response) => {
+          if (error) {
+            console.error(error);
+          } else {
+            data = response.body
+            console.log(data)
+          }
+        })
+      res.render('customerDashboard', { title: 'Customer Dashboard', data: data });
     }
   },
 );
+
 
 /* Employee Dashboard. */
 router.get(

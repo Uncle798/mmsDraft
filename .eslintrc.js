@@ -15,4 +15,7 @@ module.exports = {
     'linebreak-style': 0,
     'allowForLoopAfterthoughts': 0,
   },
+  ignorePatterns: {
+    '**/prismaScratchPad.mjs': true,
+  }
 };

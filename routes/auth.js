@@ -10,6 +10,7 @@ const nodeMailer = require('nodemailer');
 const { htmlToText } = require('nodemailer-html-to-text');
 // const hbs = require('nodemailer-express-handlebars');
 const prisma = require('../lib/db');
+const { object } = require('joi');
 
 const transporter = nodeMailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -36,17 +37,16 @@ async function sendEmail(email, name, link) {
 
 passport.serializeUser((user, cb) => {
   process.nextTick(() => {
-    const keys = Object.keys(user);
-    const values = Object.values(user);
-    console.log(`>>>> SERIALIZEUSER: ${keys}\r\n ${values}`);
+    let isEmployee = Boolean();
+    let isAdmin = Boolean();
     const { employee } = user;
-    let isEmployee = false;
-    let isAdmin = false;
-    if (keys.length > 0) {
-      isEmployee = true;
-      isAdmin = employee.isAdmin !== undefined;
+    const keys = Object.values(user);
+    console.log(`user ${keys}`)
+    if (employee !== null) {
+      isEmployee = Boolean(employee.userid);
+      isAdmin = employee.isAdmin;
     }
-    const givenName = user.givenName !== undefined;
+    const givenName = user.givenName ?? null;
     cb(null, {
       id: user.id,
       email: user.email,
@@ -62,14 +62,11 @@ passport.deserializeUser((user, cb) => {
 });
 
 function redirectUser(user) {
-  const keys = Object.keys(user.employee);
-  const values = Object.values(user.employee);
-  console.log(`>>>> REDIRECT USER  ${keys}\r\n ${values}`);
-  if (user.employee.isAdmin) {
+  if (user.isAdmin) {
     return '/admin';
-  } if (user.employee.userId) {
+  } if (user.isEmployee) {
     return '/employee';
-  } if (user.givenName === undefined) {
+  } if (user.givenName === null) {
     return '/userfirsttime';
   }
   return '/customer';
@@ -109,6 +106,7 @@ const magicLogin = new MagicLoginStrategy({
           id: true,
           email: true,
           givenName: true,
+          familyName: true,
           employee: {
             select: {
               userId: true,
@@ -131,10 +129,8 @@ router.get(
   passport.authenticate('magiclogin', { failureRedirect: '/login', failureFlash: true, failureMessage: 'Magic Login Error' }),
   (req, res, next) => {
     const { user } = req;
-    const keys = Object.keys(req.user);
-    const values = Object.values(req.user);
-    console.log(`>>>> ${keys}\r\n ${values}`);
-    res.redirect(redirectUser(user));
+    const redirect = redirectUser(user);
+    res.redirect(redirect);
     res.send();
   },
 );
@@ -147,91 +143,103 @@ router.get(
   '/oauth2/redirect/google',
   passport.authenticate('google', { failureRedirect: '/login', failureMessage: true }),
   (req, res, next) => {
-    const { user } = req.user;
-    req.session.returnTo = redirectUser(user);
-    next();
+    const { user } = req;
+    const redirect = redirectUser(user);
+    res.redirect(redirect);
+    res.send();
   },
 );
 
-passport.use(new GoogleStrategy({
-  clientID: String(process.env.GOOGLE_ID),
-  clientSecret: String(process.env.GOOGLE_SECRET),
-  callbackURL: 'http://localhost:3000/auth/oauth2/redirect/google',
-  passReqToCallback: true,
-}, async (request, accessToken, refreshToken, profile, cb) => {
-  const { emails, name } = profile;
-  try {
-    let account = await prisma.account.findFirst({
-      where: {
-        AND: [
-          { providerId: profile.provider },
-          { providerAccountId: profile.id },
-        ],
-      },
-      include: {
-        user: {
-          select: {
-            givenName: true,
-            familyName: true,
-            email: true,
-            employee: {
-              select: {
-                userId: true,
-                isAdmin: true,
-              },
-            },
-          },
-        },
-      },
-    });
-    if (account === null) {
-      account = await prisma.account.create({
-        data: {
-          providerId: profile.provider,
-          providerAccountId: profile.id,
-          accessToken: String(accessToken),
-          refreshToken: String(refreshToken),
-          scope: 'profile email',
-          user: {
-            connectOrCreate: {
-              where: {
-                email: emails[0].value,
-              },
-              create: {
-                email: emails[0].value,
-                emailVerified: new Date(Date.now()),
-              },
-            },
-          },
-        },
-      });
-    }
-    const keys = Object.keys(account.user);
-    const values = Object.values(account.user);
-    console.log(`>>>>>>>>>>>>>>>>>>>>>>> googleStrategy keys: ${keys} values: ${values}`);
-    if (account.user.givenName === undefined && name.givenName !== undefined) {
-      console.log('account.user.givenName === undefined && name.givenName !== undefined');
-      account = prisma.user.update({
+passport.use(new GoogleStrategy(
+  {
+    clientID: String(process.env.GOOGLE_ID),
+    clientSecret: String(process.env.GOOGLE_SECRET),
+    callbackURL: 'http://localhost:3000/auth/oauth2/redirect/google',
+    passReqToCallback: true,
+  },
+  async (request, accessToken, refreshToken, profile, cb) => {
+    const { emails, name } = profile;
+    try {
+      let account = await prisma.account.findFirst({
         where: {
-          email: account.email,
-        },
-        data: {
-          givenName: name.givenName,
-          familyName: name.familyName,
+          AND: [
+            { providerId: profile.provider },
+            { providerAccountId: profile.id },
+          ],
         },
         select: {
-          email: true,
-          givenName: true,
-          id: true,
+          user: {
+            select: {
+              givenName: true,
+              familyName: true,
+              email: true,
+              employee: {
+                select: {
+                  userId: true,
+                  isAdmin: true,
+                },
+              },
+            },
+          },
         },
       });
+      if (account === null) {
+        account = await prisma.account.create({
+          data: {
+            providerId: profile.provider,
+            providerAccountId: profile.id,
+            accessToken: String(accessToken),
+            refreshToken: String(refreshToken),
+            scope: 'profile email',
+            user: {
+              connectOrCreate: {
+                where: {
+                  email: emails[0].value,
+                },
+                create: {
+                  email: emails[0].value,
+                  emailVerified: new Date(Date.now()),
+                },
+              },
+            },
+          },
+          select: {
+            user: {
+              select: {
+                givenName: true,
+                familyName: true,
+                email: true,
+                id: true,
+                employee: true,
+              },
+            },
+          },
+        });
+      }
+      if (account.user.givenName === undefined && name.givenName !== undefined) {
+        account = prisma.user.update({
+          where: {
+            email: account.email,
+          },
+          data: {
+            givenName: name.givenName,
+            familyName: name.familyName,
+          },
+          select: {
+            email: true,
+            givenName: true,
+            id: true,
+          },
+        });
+      }
+      const { user } = account;
+      return cb(null, user);
+    } catch (error) {
+      console.error(error);
+      return cb(error, null);
     }
-    return cb(null, account);
-  } catch (error) {
-    console.error(error);
-    return cb(error, null);
-  }
-}));
+  },
+));
 /* End */
 
 /* Logout Route */

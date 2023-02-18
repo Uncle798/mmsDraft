@@ -18,7 +18,12 @@
         </label>
         <label>
             State:
-            <input type="text" id="state" minlength="2" maxlength="2" required />
+            <select id="state">
+                {{#each state}}
+                {{/{{#each states as |state|}}
+                <option value="{{state}}">{{state}}</option>
+                {{/each}}}}
+            </select>
         </label>
         <label>
             Zip Code:

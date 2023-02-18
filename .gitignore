@@ -33,3 +33,4 @@ yarn-error.log*
 
 security/req.cnf
 security/www.localhost.com
+prismaScratchPad.mjs
