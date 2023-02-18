@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus */
 const gulp = require('gulp');
 const debug = require('debug')('gulpfile');
 const nodemon = require('gulp-nodemon');
@@ -18,13 +19,12 @@ async function startHttpS() {
       ext: 'js handlebars css', // nodemon watches *.js, *.handlebars and *.css files
       env: { NODE_ENV: 'development' },
     });
-    debug(`Server listing on ${server}`)
+    debug(`Server listing on ${server}`);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     debug(error);
   }
 }
-
 
 async function startHttp() {
   try {
@@ -32,12 +32,12 @@ async function startHttp() {
     if (result.error) { debug(result.error); }
     const server = await nodemon({
       script: './bin/www', // this is where my express server is
-      ext: 'js handlebars css', // nodemon watches *.js, *.handlebars and *.css files
+      ext: 'js pug css', // nodemon watches *.js, *.handlebars and *.css files
       env: { NODE_ENV: 'development' },
     });
-    debug(`Server listing on ${server}`)
+    debug(`Server listing on ${server}`);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     debug(error);
   }
 }
@@ -49,7 +49,7 @@ async function startReload() {
     ui: { port: 3003 }, // UI, can be any port
     reloadDelay: 2000, // Important, otherwise syncing will not work
   });
-  gulp.watch(['./**/*.js', './**/*.handlebars', './**/*.css']).on('change', browserSync.reload);
+  gulp.watch(['./**/*.js', './**/*.pug', './**/*.css']).on('change', browserSync.reload);
 }
 
 async function startNgrok() {
@@ -57,10 +57,10 @@ async function startNgrok() {
   const keys = Object.keys(result.parsed);
   const values = Object.values(result.parsed);
   const url = await ngrok.connect(browserSyncPort);
-  console.log(`url ${url}`);
   await fs.writeFile('./.env', '', (err) => { debug(err); });
   for (let i = 0; i < keys.length; i++) {
     if (keys[i] === 'NGROK_URL') {
+      // eslint-disable-next-line no-continue
       continue;
     } else {
       fs.appendFileSync('./.env', `${keys[i]}="${values[i]}"\r\n`);
@@ -68,9 +68,8 @@ async function startNgrok() {
   }
   fs.appendFileSync('./.env', `NGROK_URL="${url}"\r\n`);
   dotenv.config();
-  debug('ngrok public url: ' + url);
+  debug(`ngrok public url: ${url}`);
 }
-
 
 exports.startDev = gulp.series([startNgrok, startHttp, startReload]);
 exports.startHttps = gulp.series([startNgrok, startHttpS, startReload]);
