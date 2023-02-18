@@ -6,3 +6,37 @@ body {
 a {
   color: #00B7FF;
 }
+ul {
+  list-style-type: none;
+  margin-top: 10px;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333333;
+  position: relative;
+}
+
+li {
+  float: left;
+}
+
+li a {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 16px;
+  text-decoration: none;
+}
+
+li a:hover {
+  background-color: #111111;
+}
+
+li button {
+  margin: 14px;
+  position: absolute;
+  background-color: #ee9d9d;
+
+}

@@ -2,7 +2,6 @@ const express = require('express');
 
 const router = express.Router();
 const needle = require('needle');
-const { body, validationResult } = require('express-validator');
 const Joi = require('joi');
 const prisma = require('../lib/db');
 const { baseLink } = require('../lib/baseLink');
@@ -15,7 +14,6 @@ const sendLinkUrl = `${baseLink}/auth/sendlink`;
 router.post(
   '/loginform',
   async (req, res, next) => {
-    const keys = Object.keys(req.body);
     const { email } = req.body;
     const result = Joi.assert(email, Joi.string().email());
     console.log(`>>>>> validation loginForm: ${result}`);

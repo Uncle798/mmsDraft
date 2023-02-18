@@ -3,11 +3,9 @@ const createError = require('http-errors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const debug = require('debug')('mmsServer');
 const session = require('express-session');
 const flash = require('express-flash');
 const { PrismaSessionStore } = require('@quixo3/prisma-session-store');
-const pug = require('pug');
 const passport = require('passport');
 const prisma = require('./lib/db');
 
