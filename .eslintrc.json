@@ -1,0 +1,22 @@
+{
+  "env": {
+    "browser": true,
+    "commonjs": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": "airbnb-base",
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+  "rules": {
+    "linebreak-style": 0,
+    "allowForLoopAfterthoughts": 0
+  },
+  "ignorePatterns": [
+    "** /prismaScratchPad.mjs"
+  ],
+  "plugins": [
+    "pug"
+  ]
+}

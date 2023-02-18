@@ -6,6 +6,10 @@
 	],
 	"settings": {
 		"eslint.format.enable": true,
-		"editor.formatOnSave": true
+		"editor.formatOnSave": true,
+		"eslint.nodeEnv": "dev",
+		"[javascript]": {
+			"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+		}
 	}
 }
