@@ -7,6 +7,7 @@ const debug = require('debug')('mmsServer');
 const session = require('express-session');
 const flash = require('express-flash');
 const { PrismaSessionStore } = require('@quixo3/prisma-session-store');
+const pug = require('pug')
 const { engine } = require('express-handlebars');
 const passport = require('passport');
 const prisma = require('./lib/db');
@@ -19,8 +20,7 @@ const apiRouter = require('./routes/api');
 const app = express();
 
 // view engine setup
-app.engine('handlebars', engine());
-app.set('view engine', 'handlebars');
+app.set('view engine', 'pug');
 app.set('views', './views');
 
 app.use(logger('dev'));
@@ -45,10 +45,15 @@ app.use(session({
 app.use(passport.session());
 app.use(flash());
 
-app.unsubscribe('/api', apiRouter);
+app.use('/api', apiRouter);
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/validation', validationRouter);
+
+// app.use((req, res, next) => {
+//   res.write({ baseLink: `${process.env.BASE_URL}${process.env.BROWSER_SYNC_PORT}` });
+//   next();
+// });
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
@@ -59,7 +64,6 @@ app.use((req, res, next) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   // set locals, only providing error in development
-  console.error(`> app.js err: ${err}`);
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
