@@ -7,8 +7,7 @@ const debug = require('debug')('mmsServer');
 const session = require('express-session');
 const flash = require('express-flash');
 const { PrismaSessionStore } = require('@quixo3/prisma-session-store');
-const pug = require('pug')
-const { engine } = require('express-handlebars');
+const pug = require('pug');
 const passport = require('passport');
 const prisma = require('./lib/db');
 
@@ -21,7 +20,7 @@ const app = express();
 
 // view engine setup
 app.set('view engine', 'pug');
-app.set('views', './views');
+app.set('views', path.join(__dirname, 'views'));
 
 app.use(logger('dev'));
 app.use(cookieParser());
