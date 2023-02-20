@@ -1,15 +1,17 @@
 const express = require('express');
 const { ensureLoggedIn } = require('connect-ensure-login');
 const needle = require('needle');
+const { faker } = require('@faker-js/faker');
 const { baseLink } = require('../lib/baseLink');
-const { body } = require('express-validator');
-const { response } = require('express');
+
+const lorem = faker.lorem.paragraphs(5);
 
 const router = express.Router();
 
 /* GET home page. */
 router.get('/', (req, res, next) => {
-  res.render('index', { title: 'Moscow Ministorage' });
+  console.log(lorem)
+  res.render('index', { title: 'Moscow Ministorage', lorem });
 });
 
 router.get(
@@ -42,9 +44,12 @@ router.get(
           }
         },
       );
+      const keys = Object.keys(body);
+      const values = Object.values(body);
       res.render('adminDashboard', {
         title: 'Admin Dashboard',
-        body,
+        keys,
+        values,
       });
     } else {
       res.redirect('/customer');
@@ -63,28 +68,28 @@ router.get(
     } else if (req.user.isEmployee) {
       res.redirect('/employee');
     } else {
-      let data = {}
-      console.log(req.user)
+      let data = {};
+      console.log(req.user);
       needle.request(
         'GET',
         `${baseLink}/api/user/currentinfo`,
         { data: req.user.id },
         {
-          port: process.env.BROWSER_SYNC_PORT
+          port: process.env.BROWSER_SYNC_PORT,
         },
         (error, response) => {
           if (error) {
             console.error(error);
           } else {
-            data = response.body
-            console.log(data)
+            data = response.body;
+            console.log(data);
           }
-        })
-      res.render('customerDashboard', { title: 'Customer Dashboard', data: data });
+        },
+      );
+      res.render('customerDashboard', { title: 'Customer Dashboard', data });
     }
   },
 );
-
 
 /* Employee Dashboard. */
 router.get(

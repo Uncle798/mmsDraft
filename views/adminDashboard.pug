@@ -1,6 +1,9 @@
-
-
 extends layout 
 block content 
     h1 #{title}
     p welcome to #{title}
+    ul 
+    each key in keys
+        li = key
+    each value in values 
+        li = values

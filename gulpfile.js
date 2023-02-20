@@ -47,7 +47,7 @@ async function startReload() {
     port: browserSyncPort, // this can be any port, it will show our app
     proxy: 'http://localhost:3000/', // this is the port where express server works
     ui: { port: 3003 }, // UI, can be any port
-    reloadDelay: 2000, // Important, otherwise syncing will not work
+    reloadDelay: 750, // Important, otherwise syncing will not work
   });
   gulp.watch(['./**/*.js', './**/*.pug', './**/*.css']).on('change', browserSync.reload);
 }
