@@ -232,6 +232,7 @@ async function createLeases() {
   employees.forEach((employee) => {
     employeeList.push(employee.userId.toString());
   });
+  const numUsers = await prisma.user.count({ where: { id: { notIn: employeeList } } });
   const customers = await prisma.user.findMany({
     where: {
       id: {
@@ -327,9 +328,9 @@ async function updateLeases() {
         gte: new Date(Date.now()),
       },
     },
-    data:{
+    data: {
       leaseEnded: null,
-    }
+    },
   });
 }
 
@@ -363,6 +364,7 @@ async function createPeople() {
 async function createFinacials() {
   console.log('finacials');
   await createLeases();
+  await updateLeases();
   await createInvoices();
 
   const employees = await prisma.employee.findMany();
