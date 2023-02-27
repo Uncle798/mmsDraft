@@ -209,15 +209,29 @@ function arrayMonths(startDate, endDate) {
   return arrayOfMonths;
 }
 
+async function createLease(customer, employee, contactInfo, unit, leaseEffectiveDate, leaseEnded) {
+  const lease = await prisma.lease.create({
+    data: {
+      customerId: customer.id,
+      employeeId: employee.userId,
+      contactInfoId: contactInfo[0].id,
+      unitNum: unit.unitNum,
+      price: unit.price,
+      leaseEffectiveDate: new Date(leaseEffectiveDate),
+      leaseEnded,
+    },
+  });
+  return lease;
+}
+
 async function createLeases() {
-  const leases = {};
+  const leases = [];
   const units = await prisma.unitPricing.findMany();
   const employees = await prisma.employee.findMany();
   const employeeList = [];
   employees.forEach((employee) => {
     employeeList.push(employee.userId.toString());
   });
-  const numUsers = await prisma.user.count();
   const customers = await prisma.user.findMany({
     where: {
       id: {
@@ -239,7 +253,7 @@ async function createLeases() {
     let numLeases = Math.floor(Math.random() * 6) + 1; // between 1 & 6 leases per unit
     const customer = customers.pop();
     const { contactInfo } = customer;
-    if (numLeases > 0) {
+    while (numLeases > 0) {
       let lengthOfLease = 0;
       if (numLeases === 1) {
         lengthOfLease = totalNumMonths;
@@ -253,17 +267,8 @@ async function createLeases() {
         leaseEndDate = null;
         numLeases = 0;
       }
-      await prisma.lease.create({
-        data: {
-          customerId: customer.id,
-          employeeId: employees[Math.floor(Math.random() * employees.length)].userId,
-          contactInfoId: contactInfo[0].id,
-          unitNum: unit.unitNum,
-          price: unit.price,
-          leaseEffectiveDate: new Date(leaseStart),
-          leaseEnded: leaseEndDate,
-        },
-      });
+      const employee = employees[Math.floor(Math.random() * employees.length)];
+      leases.push(createLease(customer, employee, contactInfo, unit, leaseStart, leaseEndDate));
       totalNumMonths -= lengthOfLease;
       // random number of months unit sits empty
       leaseStart = new Date(addMonths(leaseStart, (lengthOfLease + Math.floor(Math.random * 4))));
@@ -279,7 +284,6 @@ async function createInvoices() {
     const startDate = lease.leaseEffectiveDate;
     const leaseEndDate = lease.leaseEnded ?? Date.now();
     const invoiceDate = addMonths(startDate, 1);
-    console.log(`> Lease.id ${lease.id}`);
     const months = arrayMonths(lease.leaseEffectiveDate, leaseEndDate);
     months.forEach(async (month) => {
       await prisma.invoice.create({
@@ -316,12 +320,24 @@ async function createPayments(invoice, employee) {
   return record;
 }
 
+async function updateLeases() {
+  const leases = await prisma.lease.updateMany({
+    where: {
+      leaseEnded: {
+        gte: new Date(Date.now()),
+      },
+    },
+    data:{
+      leaseEnded: null,
+    }
+  });
+}
+
 let startTime = Date();
 async function createInfrustructure() {
   console.log('> Seeding db .....');
   startTime = Date.now();
   let deleteTime = Date();
-
   await deleteAll().then(() => {
     deleteTime = Date.now();
     console.log(`> Everything deleted in ${deleteTime - startTime} ms`);
@@ -342,8 +358,6 @@ async function createPeople() {
     numUsers -= 1;
   }
   await createEmployees();
-  const userTime = Date.now();
-  console.log(`> users created in ${userTime - startTime} ms`);
 }
 
 async function createFinacials() {
@@ -362,7 +376,7 @@ async function createFinacials() {
 await createInfrustructure();
 await createPeople().then(async () => {
   await createFinacials();
-})
+}).then(await updateLeases())
   .catch((err) => {
     console.error(err);
     process.exit(1);
