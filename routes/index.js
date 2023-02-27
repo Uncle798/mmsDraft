@@ -10,7 +10,6 @@ const router = express.Router();
 
 /* GET home page. */
 router.get('/', (req, res, next) => {
-  console.log(lorem)
   res.render('index', { title: 'Moscow Ministorage', lorem });
 });
 
@@ -33,24 +32,26 @@ router.get(
   // eslint-disable-next-line no-unused-vars
   async (req, res, next) => {
     if (req.user.isAdmin) {
-      let body = {};
       needle.get(
-        'http://localhost:3002/api/currentcustomers',
+        `${baseLink}/api/currentcustomers`,
         (error, response) => {
           if (error) {
             console.error(error);
           } else {
-            body = response.body;
+            const keys = Object.keys(response.body);
+            const values = Object.values(response.body);
+            console.log(`>>>> values: ${values}`)
+            res.render(
+              'adminDashboard',
+              {
+                title: 'Admin Dashboard',
+                keys,
+                values,
+              },
+            );
           }
         },
       );
-      const keys = Object.keys(body);
-      const values = Object.values(body);
-      res.render('adminDashboard', {
-        title: 'Admin Dashboard',
-        keys,
-        values,
-      });
     } else {
       res.redirect('/customer');
     }
@@ -68,8 +69,6 @@ router.get(
     } else if (req.user.isEmployee) {
       res.redirect('/employee');
     } else {
-      let data = {};
-      console.log(req.user);
       needle.request(
         'GET',
         `${baseLink}/api/user/currentinfo`,
@@ -80,13 +79,12 @@ router.get(
         (error, response) => {
           if (error) {
             console.error(error);
-          } else {
-            data = response.body;
-            console.log(data);
           }
+          const userInfo = response.body;
+          console.log(`> userInfo ${userInfo}`);
+          res.render('customerDashboard', { title: 'Customer Dashboard', userInfo });
         },
       );
-      res.render('customerDashboard', { title: 'Customer Dashboard', data });
     }
   },
 );
