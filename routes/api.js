@@ -4,7 +4,6 @@ const { ensureLoggedIn } = require('connect-ensure-login');
 const router = express.Router();
 const prisma = require('../lib/db');
 const { addMonths, subtractMonths } = require('../lib/dateHelpers');
-const { values } = require('lodash');
 
 router.get('/', (req, res, next) => { res.render('index'); });
 
@@ -19,20 +18,19 @@ router.get(
           include: {
             invoices: {
               where: { invoiceCreated: { lte: new Date(subtractMonths(Date.now(), 12)) } },
-              include: { paymentRecord: true, }
+              include: { paymentRecord: true },
             },
-          }
+          },
         },
         contactInfo: {
-          where: { softDelete: false }
-        }
-      }
+          where: { softDelete: false },
+        },
+      },
     });
     res.json(user);
     res.send();
-  }
-)
-
+  },
+);
 
 /** Contact Info  */
 router.post(
@@ -65,8 +63,6 @@ router.get(
   },
 );
 /** /contactInfo */
-
-
 
 router.get(
   '/:user/leases',
