@@ -10,7 +10,6 @@ const nodeMailer = require('nodemailer');
 const { htmlToText } = require('nodemailer-html-to-text');
 // const hbs = require('nodemailer-express-handlebars');
 const prisma = require('../lib/db');
-const { object } = require('joi');
 
 const transporter = nodeMailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -154,7 +153,7 @@ passport.use(new GoogleStrategy(
   {
     clientID: String(process.env.GOOGLE_ID),
     clientSecret: String(process.env.GOOGLE_SECRET),
-    callbackURL: 'http://localhost:3000/auth/oauth2/redirect/google',
+    callbackURL: `${process.env.BASE_URL}:${process.env.BROWSER_SYNC_PORT}/auth/oauth2/redirect/google`,
     passReqToCallback: true,
   },
   async (request, accessToken, refreshToken, profile, cb) => {
