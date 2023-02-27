@@ -9,19 +9,19 @@ const lorem = faker.lorem.paragraphs(5);
 const router = express.Router();
 
 /* GET home page. */
-router.get('/', (req, res, next) => {
+router.get('/', (req, res) => {
   res.render('index', { title: 'Moscow Ministorage', lorem });
 });
 
 router.get(
   '/userfirsttime',
   ensureLoggedIn({ redirectTo: '/auth/login' }),
-  (req, res, next) => {
+  (req, res) => {
     res.render('userFirstTime', { title: 'Please tell us a bit more about you' });
   },
 );
 
-router.get('/availableunits', (req, res, next) => {
+router.get('/availableunits', (req, res) => {
   res.render('availableUnits', { title: 'Here\'s what\'s currently available' });
 });
 
@@ -30,7 +30,7 @@ router.get(
   '/admin',
   ensureLoggedIn({ redirectTo: '/auth/login' }),
   // eslint-disable-next-line no-unused-vars
-  async (req, res, next) => {
+  async (req, res) => {
     if (req.user.isAdmin) {
       needle.get(
         `${baseLink}/api/currentcustomers`,
@@ -40,7 +40,7 @@ router.get(
           } else {
             const keys = Object.keys(response.body);
             const values = Object.values(response.body);
-            console.log(`>>>> values: ${values}`)
+            console.log(`>>>> values: ${values}`);
             res.render(
               'adminDashboard',
               {
@@ -63,7 +63,7 @@ router.get(
   '/customer',
   ensureLoggedIn({ redirectTo: '/auth/login' }),
   // eslint-disable-next-line no-unused-vars
-  (req, res, next) => {
+  (req, res) => {
     if (req.user.isAdmin) {
       res.redirect('/admin');
     } else if (req.user.isEmployee) {
@@ -94,7 +94,7 @@ router.get(
   '/employee',
   ensureLoggedIn({ redirectTo: '/auth/login' }),
   // eslint-disable-next-line no-unused-vars
-  (req, res, next) => {
+  (req, res) => {
     if (req.user.isAdmin) {
       res.redirect('/admin');
     } else if (req.user.isEmployee) {

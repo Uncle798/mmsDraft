@@ -40,7 +40,7 @@ passport.serializeUser((user, cb) => {
     let isAdmin = Boolean();
     const { employee } = user;
     const keys = Object.values(user);
-    console.log(`user ${keys}`)
+    console.log(`user ${keys}`);
     if (employee !== null) {
       isEmployee = Boolean(employee.userid);
       isAdmin = employee.isAdmin;
@@ -126,7 +126,7 @@ router.post('/sendlink', magicLogin.send);
 router.get(
   '/magiclogin/callback',
   passport.authenticate('magiclogin', { failureRedirect: '/login', failureFlash: true, failureMessage: 'Magic Login Error' }),
-  (req, res, next) => {
+  (req, res) => {
     const { user } = req;
     const redirect = redirectUser(user);
     res.redirect(redirect);
@@ -141,7 +141,7 @@ router.get('/federated/google', passport.authenticate('google', { scope: ['profi
 router.get(
   '/oauth2/redirect/google',
   passport.authenticate('google', { failureRedirect: '/login', failureMessage: true }),
-  (req, res, next) => {
+  (req, res) => {
     const { user } = req;
     const redirect = redirectUser(user);
     res.redirect(redirect);

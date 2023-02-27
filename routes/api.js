@@ -3,14 +3,14 @@ const { ensureLoggedIn } = require('connect-ensure-login');
 
 const router = express.Router();
 const prisma = require('../lib/db');
-const { addMonths, subtractMonths } = require('../lib/dateHelpers');
+const { subtractMonths } = require('../lib/dateHelpers');
 
-router.get('/', (req, res, next) => { res.render('index'); });
+router.get('/', (req, res) => { res.render('index'); });
 
 router.get(
   '/user/currentinfo',
   // ensureLoggedIn(),
-  async (req, res, next) => {
+  async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id: req.query.data },
       include: {
@@ -81,7 +81,7 @@ router.get(
 
 router.get(
   '/currentcustomers',
-  async (req, res, next) => {
+  async (req, res) => {
     const customers = await prisma.lease.findMany({
       // where: {
       //   leaseEnded: { equals: null },
