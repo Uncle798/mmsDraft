@@ -2,8 +2,14 @@ extends layout
 block content 
     h1 #{title}
     p welcome to #{title}
-    ul 
-    each key in keys
-        li = key
-    each value in values 
-        li = values
+    table 
+        tr  
+        each key in keys 
+            th=key
+        each value in values 
+            tr 
+                td=value.unitNum 
+                td=value.price 
+                td=value.leaseEffectiveDate
+                td=value.customer.familyName 
+                td=value.customer.givenName
