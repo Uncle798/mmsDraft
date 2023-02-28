@@ -1,0 +1,15 @@
+extends layout 
+block content
+    form(action="/frontend/newlease", method="post") 
+        label(for="selectUnit") Select unit: 
+            select(name="selectUnit") 
+                each unit in units
+                    option=unit.num 
+        label(for="selectPrice") Select price:
+            select(name="selectPrice") 
+                each price in prices 
+                    option=price 
+        input(type="hidden" name="customerId" value=customerId)
+        input(type="hidden" name="employeeId" value=employeeId)
+        input(type="hidden" name="contactInfoId" value=contactInfoId)
+        button(type="submit") Submit

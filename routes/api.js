@@ -4,7 +4,7 @@ const { ensureLoggedIn } = require('connect-ensure-login');
 const router = express.Router();
 const prisma = require('../lib/db');
 const { subtractMonths } = require('../lib/dateHelpers');
-const { objHelpers } = require('../lib/objectHelpers');
+const { objHelpers, prettyKeys } = require('../lib/objectHelpers');
 
 router.get('/', (req, res) => { res.render('index'); });
 
@@ -28,7 +28,7 @@ router.get(
         },
       },
     });
-    const returnObj = objHelpers(dbUser);
+    const returnObj = prettyKeys(dbUser);
     res.json(returnObj);
   },
 );
@@ -65,6 +65,7 @@ router.get(
 );
 /** /contactInfo */
 
+/* Leases */
 router.get(
   '/:user/leases',
   ensureLoggedIn(),
@@ -78,12 +79,29 @@ router.get(
   },
 );
 
+router.post(
+  '/newlease',
+  async (req, res) => {
+    const {
+      leaseEffectiveDate,
+      employeeId,
+      customerId,
+      contactInfoId,
+    } = req.body;
+    const dbLease = await prisma.lease.create({
+      data: {
+        leaseEffectiveDate, employeeId, customerId, contactInfoId,
+      },
+    });
+  },
+);
+
 /** Admin apis */
 
 router.get(
   '/currentcustomers',
   async (req, res) => {
-    const customers = await prisma.lease.findFirst({
+    const leases = await prisma.lease.findMany({
       // where: {
       //   leaseEnded: { equals: null },
       // },
@@ -95,7 +113,10 @@ router.get(
       },
       orderBy: { unitNum: 'asc' },
     });
-    const returnObj = objHelpers(customers);
+    let returnObj = {};
+    leases.forEach((lease) => {
+      returnObj += objHelpers(lease);
+    });
     res.json(returnObj);
   },
 );
