@@ -22,8 +22,24 @@ router.get(
   },
 );
 
-router.get('/availableunits', (req, res) => {
-  res.render('availableUnits', { title: 'Here\'s what\'s currently available' });
+router.get('/availableunits', async (req, res) => {
+  needle.get(
+    `${baseLink}/unitsapi/openunits`,
+    (error, response) => {
+      if (error) {
+        console.error(error);
+      } else {
+        const units = response.body;
+        res.render(
+          'availableUnits',
+          {
+            title: 'Admin Dashboard',
+            units,
+          },
+        );
+      }
+    },
+  );
 });
 
 /* Admin Dashboard. */
@@ -33,7 +49,7 @@ router.get(
   async (req, res) => {
     if (req.user.isAdmin) {
       needle.get(
-        `${baseLink}/api/currentcustomers`,
+        `${baseLink}/dbapi/currentcustomers`,
         (error, response) => {
           if (error) {
             console.error(error);
@@ -80,7 +96,6 @@ router.get(
             console.error(error);
           }
           const userInfo = response.body;
-          console.log(`> userInfo ${userInfo}`);
           res.render('customerDashboard', { title: 'Customer Dashboard', userInfo });
         },
       );

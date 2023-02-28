@@ -7,7 +7,7 @@ const { subtractMonths } = require('../lib/dateHelpers');
 const { objHelpers, prettyKeys } = require('../lib/objectHelpers');
 
 router.get('/', (req, res) => { res.render('index'); });
-
+/** Customer Dashboard */
 router.get(
   '/user/currentinfo',
   // ensureLoggedIn(),
@@ -32,6 +32,8 @@ router.get(
     res.json(returnObj);
   },
 );
+
+/** end Customer Dashboard */
 
 /** Contact Info  */
 router.post(
@@ -63,7 +65,7 @@ router.get(
     res.json(returnObj);
   },
 );
-/** /contactInfo */
+/** end Contact Info */
 
 /* Leases */
 router.get(
@@ -93,33 +95,11 @@ router.post(
         leaseEffectiveDate, employeeId, customerId, contactInfoId,
       },
     });
+    res.json(dbLease);
   },
 );
 
 /** Admin apis */
-
-router.get(
-  '/currentcustomers',
-  async (req, res) => {
-    const leases = await prisma.lease.findMany({
-      // where: {
-      //   leaseEnded: { equals: null },
-      // },
-      select: {
-        unitNum: true,
-        price: true,
-        leaseEffectiveDate: true,
-        customer: true,
-      },
-      orderBy: { unitNum: 'asc' },
-    });
-    let returnObj = {};
-    leases.forEach((lease) => {
-      returnObj += objHelpers(lease);
-    });
-    res.json(returnObj);
-  },
-);
 
 router.put(
   '/users/stripeid',

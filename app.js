@@ -12,7 +12,8 @@ const prisma = require('./lib/db');
 const indexRouter = require('./routes/index');
 const authRouter = require('./routes/auth');
 const validationRouter = require('./routes/validation');
-const apiRouter = require('./routes/api');
+const customerApiRouter = require('./routes/customerApi');
+const unitsApi = require('./routes/unitsApi');
 
 const app = express();
 
@@ -42,10 +43,11 @@ app.use(session({
 app.use(passport.session());
 app.use(flash());
 
-app.use('/api', apiRouter);
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/validation', validationRouter);
+app.use('/customerapi', customerApiRouter);
+app.user('/unitsapi', unitsApi);
 
 // app.use((req, res, next) => {
 //   res.write({ baseLink: `${process.env.BASE_URL}${process.env.BROWSER_SYNC_PORT}` });
