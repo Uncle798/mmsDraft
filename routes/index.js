@@ -1,6 +1,7 @@
 const express = require('express');
 const { ensureLoggedIn } = require('connect-ensure-login');
 const needle = require('needle');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const { faker } = require('@faker-js/faker');
 const { baseLink } = require('../lib/baseLink');
 
@@ -29,7 +30,6 @@ router.get('/availableunits', (req, res) => {
 router.get(
   '/admin',
   ensureLoggedIn({ redirectTo: '/auth/login' }),
-  // eslint-disable-next-line no-unused-vars
   async (req, res) => {
     if (req.user.isAdmin) {
       needle.get(
@@ -38,9 +38,8 @@ router.get(
           if (error) {
             console.error(error);
           } else {
-            const keys = Object.keys(response.body);
+            const keys = Object.values(response.body);
             const values = Object.values(response.body);
-            console.log(`>>>> values: ${values}`);
             res.render(
               'adminDashboard',
               {
