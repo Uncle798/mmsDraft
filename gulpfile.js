@@ -16,7 +16,7 @@ async function startHttpS() {
     if (result.error) { debug(result.error); }
     const server = await nodemon({
       script: './bin/https', // this is where my express server is
-      ext: 'js handlebars css', // nodemon watches *.js, *.handlebars and *.css files
+      ext: 'js handlebars', // nodemon watches *.js, *.handlebars and *.css files
       env: { NODE_ENV: 'development' },
     });
     debug(`Server listing on ${server}`);
@@ -47,7 +47,7 @@ async function startReload() {
     port: browserSyncPort, // this can be any port, it will show our app
     proxy: 'http://localhost:3000/', // this is the port where express server works
     ui: { port: 3003 }, // UI, can be any port
-    reloadDelay: 2000, // Important, otherwise syncing will not work
+    reloadDelay: 2500, // Important, otherwise syncing will not work
   });
   gulp.watch(['./**/*.js', './**/*.pug', './**/*.css']).on('change', browserSync.reload);
 }
