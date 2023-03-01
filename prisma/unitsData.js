@@ -1,4 +1,4 @@
-export const pricingData = [
+const pricingData = [
   { size: '04x06', price: 20 },
   { size: '06x08', price: 35 },
   { size: '06x10', price: 45 },
@@ -16,7 +16,7 @@ export const pricingData = [
   { size: 'ours', price: 1 },
 ];
 
-export const unitData = [
+const unitData = [
   { num: '1', building: '1', size: '08x12' },
   { num: '2', building: '1', size: '08x12' },
   { num: '3', building: '1', size: '08x12' },
@@ -287,3 +287,5 @@ export const unitData = [
   { num: '323', building: 'Outside', size: 'Outside' },
   { num: '324', building: 'Outside', size: 'Outside' },
 ];
+
+module.exports = { unitData, pricingData };

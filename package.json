@@ -51,7 +51,7 @@
     "yarn-audit-fix": "^9.3.8"
   },
   "prisma": {
-    "seed": "node prisma/seed.mjs"
+    "seed": "node prisma/seed.js"
   },
   "nodemonConfig": {
     "ext": "js, json, html, hbs, mjs, handlebars",
