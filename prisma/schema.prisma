@@ -72,13 +72,14 @@ model Unit {
 }
 
 model Pricing {
-  id          String        @id @default(cuid())
-  size        String
-  price       Int
-  startDate   DateTime      @default(now())
-  endDate     DateTime?
-  notes       String?
-  unitPricing UnitPricing[]
+  id              String        @id @default(cuid())
+  size            String
+  price           Int
+  startDate       DateTime      @default(now())
+  endDate         DateTime?
+  notes           String?
+  stripeProductId String?
+  unitPricing     UnitPricing[]
 
   @@unique([price, startDate, endDate])
   @@unique([size, startDate, endDate])
@@ -86,15 +87,14 @@ model Pricing {
 }
 
 model UnitPricing {
-  id              String    @id @default(cuid())
-  unit            Unit      @relation(fields: [unitNum], references: [num])
-  unitNum         String
-  pricing         Pricing?  @relation(fields: [price, startDate, endDate], references: [price, startDate, endDate])
-  price           Int
-  startDate       DateTime
-  endDate         DateTime?
-  stripeProductId String?
-  leases          Lease[]
+  id        String    @id @default(cuid())
+  unit      Unit      @relation(fields: [unitNum], references: [num])
+  unitNum   String
+  pricing   Pricing?  @relation(fields: [price, startDate, endDate], references: [price, startDate, endDate])
+  price     Int
+  startDate DateTime
+  endDate   DateTime?
+  leases    Lease[]
 
   @@unique([unitNum, price])
   @@unique([unitNum, startDate, endDate])
