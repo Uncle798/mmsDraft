@@ -162,27 +162,6 @@ function monthDif(dateFrom, dateTo) {
     + (12 * (DT.getFullYear() - DF.getFullYear()));
 }
 
-function randomDate(startDate, endDate) {
-  const returnDate = new Date(new Date(startDate).getTime() + Math.random()
-    * (new Date(endDate).getTime() - new Date(startDate).getTime()));
-  if (returnDate.getDate() > 27) { returnDate.setDate(27); } // gets rid of Feb problems
-  return returnDate;
-}
-
-function subtractMonths(date, numMonths) {
-  let returnDate = new Date();
-  let i = 0;
-  while (i < numMonths) {
-    if (new Date(date).getMonth() === 0) {
-      returnDate = new Date(new Date(date).getFullYear() - 1, '11', new Date(date).getDate());
-    } else {
-      returnDate = new Date(new Date(date).setMonth(new Date(date).getMonth() - 1));
-    }
-    i += 1;
-  }
-  return returnDate;
-}
-
 function addMonths(date, numMonths) {
   let returnDate = new Date(date);
   let i = 0;
@@ -209,94 +188,54 @@ function arrayMonths(startDate, endDate) {
   return arrayOfMonths;
 }
 
-async function createLease(customer, employee, contactInfo, unit, leaseEffectiveDate, leaseEnded) {
+async function createLeases(unit, leaseStart, leaseEnd) {
+  const employees = await prisma.employee.findMany({
+    select: { userId: true },
+  });
+  const employeelist = [];
+  employees.forEach((employee) => { employeelist.push(employee.userId); });
+  const employee = employees[Math.floor(Math.random() * employees.length)];
+  const customer = await prisma.user.findFirst({
+    where: {
+      AND: {
+        id: { notIn: employeelist },
+        customerLeases: { none: {} },
+      },
+    },
+    select: {
+      id: true,
+      contactInfo: true,
+    },
+  });
+  let leaseEnded = null;
+  if (leaseEnd !== null) { leaseEnded = new Date(leaseEnd); }
   const lease = await prisma.lease.create({
     data: {
       customerId: customer.id,
       employeeId: employee.userId,
-      contactInfoId: contactInfo[0].id,
+      contactInfoId: customer.contactInfo[0].id,
       unitNum: unit.unitNum,
       price: unit.price,
-      leaseEffectiveDate: new Date(leaseEffectiveDate),
+      leaseEffectiveDate: new Date(leaseStart),
       leaseEnded,
     },
   });
   return lease;
 }
 
-async function createLeases() {
-  const leases = [];
-  const units = await prisma.unitPricing.findMany();
-  const employees = await prisma.employee.findMany();
-  const employeeList = [];
-  employees.forEach((employee) => {
-    employeeList.push(employee.userId.toString());
-  });
-  const numUsers = await prisma.user.count({ where: { id: { notIn: employeeList } } });
-  const customers = await prisma.user.findMany({
-    where: {
-      id: {
-        notIn: employeeList,
+async function createInvoices(lease) {
+  const leaseEndDate = lease.leaseEnded ?? Date.now();
+  const months = arrayMonths(lease.leaseEffectiveDate, leaseEndDate);
+  months.forEach(async (month) => {
+    await prisma.invoice.create({
+      data: {
+        customerId: lease.customerId,
+        leaseId: lease.id,
+        amount: lease.price,
+        invoiceCreated: month,
+        unitNum: lease.unitNum,
+        price: lease.price,
       },
-    },
-    take: Math.floor(numUsers * 0.97),
-    include: {
-      contactInfo: {
-        select: {
-          id: true,
-        },
-      },
-    },
-  });
-  units.forEach(async (unit) => {
-    let totalNumMonths = monthDif(earliestStarting, Date.now());
-    let leaseStart = new Date(earliestStarting);
-    let numLeases = Math.floor(Math.random() * 6) + 1; // between 1 & 6 leases per unit
-    const customer = customers.pop();
-    const { contactInfo } = customer;
-    while (numLeases > 0) {
-      let lengthOfLease = 0;
-      if (numLeases === 1) {
-        lengthOfLease = totalNumMonths;
-      } else {
-        lengthOfLease = Math.floor(Math.random() * (totalNumMonths / numLeases) - 2 + 1) + 2;
-      }
-      let leaseEndDate = null;
-      if (monthDif(leaseStart, Date.now()) >= 6) {
-        leaseEndDate = new Date(addMonths(leaseStart, lengthOfLease));
-      } else {
-        leaseEndDate = null;
-        numLeases = 0;
-      }
-      const employee = employees[Math.floor(Math.random() * employees.length)];
-      leases.push(createLease(customer, employee, contactInfo, unit, leaseStart, leaseEndDate));
-      totalNumMonths -= lengthOfLease;
-      // random number of months unit sits empty
-      leaseStart = new Date(addMonths(leaseStart, (lengthOfLease + Math.floor(Math.random * 4))));
-      numLeases -= 1;
-    }
-  });
-  return leases;
-}
-
-async function createInvoices() {
-  const leases = await prisma.lease.findMany();
-  leases.forEach(async (lease) => {
-    const startDate = lease.leaseEffectiveDate;
-    const leaseEndDate = lease.leaseEnded ?? Date.now();
-    const invoiceDate = addMonths(startDate, 1);
-    const months = arrayMonths(lease.leaseEffectiveDate, leaseEndDate);
-    months.forEach(async (month) => {
-      await prisma.invoice.create({
-        data: {
-          customerId: lease.customerId,
-          leaseId: lease.id,
-          amount: lease.price,
-          invoiceCreated: month,
-          unitNum: lease.unitNum,
-          price: lease.price,
-        },
-      });
     });
   });
 }
@@ -321,36 +260,6 @@ async function createPayments(invoice, employee) {
   return record;
 }
 
-async function updateLeases() {
-  const leases = await prisma.lease.updateMany({
-    where: {
-      leaseEnded: {
-        gte: new Date(Date.now()),
-      },
-    },
-    data: {
-      leaseEnded: null,
-    },
-  });
-}
-
-let startTime = Date();
-async function createInfrustructure() {
-  console.log('> Seeding db .....');
-  startTime = Date.now();
-  let deleteTime = Date();
-  await deleteAll().then(() => {
-    deleteTime = Date.now();
-    console.log(`> Everything deleted in ${deleteTime - startTime} ms`);
-  }).catch((err) => { console.log(`>>>>> seed.mjs Error: ${err}`); });
-  let unitTime = Date();
-  await createUnits();
-  await priceUnit().then(() => {
-    unitTime = Date.now();
-    console.log(`> Units created in ${unitTime - deleteTime} ms`);
-  });
-}
-
 async function createPeople() {
   let numUsers = unitData.length + numExtraUsers;
   console.log(`> Creating people ${numUsers}`);
@@ -361,24 +270,52 @@ async function createPeople() {
   await createEmployees();
 }
 
-async function createFinacials() {
-  console.log('finacials');
-  await createLeases();
-  await updateLeases();
-  await createInvoices();
+async function main() {
+  await deleteAll();
+  await createUnits();
+  await priceUnit();
+  await createPeople();
+  const units = await prisma.unitPricing.findMany();
+  units.forEach(async (unit) => {
+    const totalNumMonths = monthDif(earliestStarting, Date.now());
+    let leaseStart = new Date(earliestStarting);
+    const numLeases = Math.floor(Math.random() * 8) + 1; // between 1 & 8 leases per unit
+    let i = 1;
+    while (i <= numLeases) {
+      const lengthOfLease = Math.floor(
+        Math.random() * Math.floor((totalNumMonths / numLeases)),
+      ) + 1;
+      let leaseEnd = new Date(addMonths(leaseStart, lengthOfLease));
+      if (
+        leaseEnd > Date.now()
+      || monthDif(leaseEnd, Date.now()) < 3
+      || i === numLeases) { leaseEnd = null; }
 
+      createLeases(unit, leaseStart, leaseEnd);
+      i += 1;
+      leaseStart = addMonths(leaseEnd, Math.floor(Math.random * 4) + 1);
+      if (leaseEnd >= Date.now() || leaseStart >= Date.now()) { break; }
+    }
+  });
+}
+
+async function financials() {
+  const numLeases = await prisma.lease.count();
+  if (numLeases === 0) { setTimeout(financials); }
+  const leases = await prisma.lease.findMany();
+  console.log(`numLeases: ${numLeases}`);
+  leases.forEach(async (lease) => {
+    await createInvoices(lease);
+  });
   const employees = await prisma.employee.findMany();
   const invoices = await prisma.invoice.findMany();
-
   invoices.forEach(async (invoice) => {
     await createPayments(invoice, employees[Math.floor(Math.random() * employees.length)]);
   });
 }
 
-await createInfrustructure();
-await createPeople().then(async () => {
-  await createFinacials();
-}).then(await updateLeases())
+await main();
+await financials()
   .catch((err) => {
     console.error(err);
     process.exit(1);
