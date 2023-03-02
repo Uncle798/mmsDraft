@@ -5,10 +5,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 const faker = require('@faker-js/faker');
 const prisma = require('../lib/db');
+const { addMonths, arrayMonths, monthDif } = require('../lib/dateHelpers');
 const { unitData, pricingData } = require('./unitsData');
 
 // actual vars:
-const earliestStarting = '2010-01-01'; // for leases invoices and payments
+const earliestStarting = '2018-01-01'; // for leases invoices and payments
 const numExtraUsers = 300; // users with past leases or no leases
 
 async function deleteAll() {
@@ -51,7 +52,7 @@ async function priceUnit() {
 async function createUser() {
   const givenName = faker.faker.name.firstName();
   const familyName = faker.faker.name.lastName();
-  const email = `eric.branson+${familyName}${givenName}@gmail.com`;
+  const email = `eric.branson+${familyName}.${givenName}@gmail.com`;
   const contactState = faker.faker.address.stateAbbr();
   const dbUser = await prisma.user.create({
     data: {
@@ -150,39 +151,6 @@ async function createEmployees() {
   return Promise.all([me, george, fakeEmployee]);
 }
 
-function monthDif(dateFrom, dateTo) {
-  const DT = new Date(dateTo);
-  const DF = new Date(dateFrom);
-  return DT.getMonth() - DF.getMonth()
-    + (12 * (DT.getFullYear() - DF.getFullYear()));
-}
-
-function addMonths(date, numMonths) {
-  let returnDate = new Date(date);
-  let i = 0;
-  while (i < numMonths) {
-    if (returnDate.getMonth() !== 11) {
-      returnDate = new Date(returnDate.setMonth(returnDate.getMonth() + 1));
-    } else {
-      returnDate = new Date(returnDate.getFullYear() + 1, '00', returnDate.getDate());
-    }
-    i += 1;
-  }
-  return returnDate;
-}
-
-function arrayMonths(startDate, endDate) {
-  let numMonths = monthDif(startDate, endDate);
-  const arrayOfMonths = [];
-  while (numMonths > 0) {
-    arrayOfMonths.push(
-      addMonths(startDate, 1),
-    );
-    numMonths -= 1;
-  }
-  return arrayOfMonths;
-}
-
 async function createLeases(unit, leaseStart, leaseEnd) {
   const employees = await prisma.employee.findMany({
     select: { userId: true },
@@ -257,7 +225,7 @@ async function createPayments(invoice, employee) {
 
 async function createPeople() {
   let numUsers = unitData.length + numExtraUsers;
-  console.log(`> Creating people ${numUsers}`);
+  console.log(`> Creating ${numUsers} people`);
   while (numUsers > 0) {
     createUser();
     numUsers -= 1;
@@ -272,15 +240,15 @@ async function main() {
   await createPeople();
   const units = await prisma.unitPricing.findMany();
   // create leases
-  // eslint-disable-next-line no-restricted-syntax
-  for (const unit of units) {
+  units.forEach(async (unit) => {
     let leaseStart = new Date(earliestStarting);
-    const numLeases = Math.floor(Math.random() * 8) + 1; // between 1 & 8 leases per unit
+    const numLeases = Math.floor(Math.random() * 6) + 1; // between 1 & 8 leases per unit
     let i = 1;
     let numMonthsLeft = monthDif(earliestStarting, Date.now());
+
     while (i <= numLeases) {
       const lengthOfLease = Math.floor(Math.random() * numMonthsLeft) + 1;
-      console.log(`totalMonths: ${numMonthsLeft} lengthOfLease: ${lengthOfLease}`);
+      console.log(`> Unit Num: ${unit.unitNum} numMonthsLeft: ${numMonthsLeft} lengthOfLease: ${lengthOfLease}`);
       let leaseEnd = new Date(addMonths(leaseStart, lengthOfLease));
       if (
         leaseEnd > Date.now()
@@ -289,19 +257,18 @@ async function main() {
       ) {
         leaseEnd = null;
       }
-      if (leaseEnd && leaseEnd < Date.now()) {
+      if ((leaseEnd && leaseEnd < Date.now()) || leaseStart < earliestStarting) {
         break;
       }
-      // eslint-disable-next-line no-await-in-loop
-      await createLeases(unit, leaseStart, leaseEnd);
+      createLeases(unit, leaseStart, leaseEnd);
       i += 1;
       numMonthsLeft = monthDif(leaseEnd, Date.now());
       leaseStart = addMonths(leaseEnd, Math.floor(Math.random * 4) + 1);
-      if (leaseEnd >= Date.now() || leaseStart >= Date.now()) {
+      if (leaseEnd >= Date.now() || leaseStart >= Date.now() || leaseStart < earliestStarting) {
         break;
       }
     }
-  }
+  });
 }
 async function invoiceMaker() {
   const numLeases = await prisma.lease.count({ where: { invoices: { none: {} } } });
