@@ -47,7 +47,7 @@ app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/validation', validationRouter);
 app.use('/customerapi', customerApiRouter);
-app.user('/unitsapi', unitsApi);
+app.use('/unitsapi', unitsApi);
 
 // app.use((req, res, next) => {
 //   res.write({ baseLink: `${process.env.BASE_URL}${process.env.BROWSER_SYNC_PORT}` });
