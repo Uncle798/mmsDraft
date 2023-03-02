@@ -271,7 +271,9 @@ async function main() {
   await priceUnit();
   await createPeople();
   const units = await prisma.unitPricing.findMany();
-  units.forEach(async (unit) => {
+  // create leases
+  // eslint-disable-next-line no-restricted-syntax
+  for (const unit of units) {
     let leaseStart = new Date(earliestStarting);
     const numLeases = Math.floor(Math.random() * 8) + 1; // between 1 & 8 leases per unit
     let i = 1;
@@ -283,16 +285,24 @@ async function main() {
       if (
         leaseEnd > Date.now()
         || monthDif(leaseEnd, Date.now()) < 3
-        || i === numLeases) { leaseEnd = null; }
-      createLeases(unit, leaseStart, leaseEnd);
+        || i === numLeases
+      ) {
+        leaseEnd = null;
+      }
+      if (leaseEnd && leaseEnd < Date.now()) {
+        break;
+      }
+      // eslint-disable-next-line no-await-in-loop
+      await createLeases(unit, leaseStart, leaseEnd);
       i += 1;
       numMonthsLeft = monthDif(leaseEnd, Date.now());
       leaseStart = addMonths(leaseEnd, Math.floor(Math.random * 4) + 1);
-      if (leaseEnd >= Date.now() || leaseStart >= Date.now()) { break; }
+      if (leaseEnd >= Date.now() || leaseStart >= Date.now()) {
+        break;
+      }
     }
-  });
+  }
 }
-
 async function invoiceMaker() {
   const numLeases = await prisma.lease.count({ where: { invoices: { none: {} } } });
   console.log(`numLeases: ${numLeases}`);
@@ -304,8 +314,9 @@ async function invoiceMaker() {
     await createInvoices(lease);
   });
 }
+
 async function payments() {
-  const numInvoices = await prisma.invoice.count();
+  const numInvoices = await prisma.invoice.count({ where: { paymentRecord: { isNot: null } } });
   console.log(`numInvoices: ${numInvoices}`);
   if (numInvoices < 800) { setTimeout(payments, 1000); }
   const employees = await prisma.employee.findMany();
