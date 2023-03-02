@@ -52,7 +52,8 @@ async function priceUnit() {
 async function createUser() {
   const givenName = faker.faker.name.firstName();
   const familyName = faker.faker.name.lastName();
-  const email = `eric.branson+${familyName}.${givenName}@gmail.com`;
+  const phoneNum1 = faker.faker.phone.number('##########');
+  const email = `bransonschlegelmove+${phoneNum1}@gmail.com`;
   const contactState = faker.faker.address.stateAbbr();
   const dbUser = await prisma.user.create({
     data: {
@@ -67,7 +68,7 @@ async function createUser() {
           city: faker.faker.address.cityName(),
           state: contactState,
           zip: faker.faker.address.zipCodeByState(contactState),
-          phoneNum1: faker.faker.phone.number('##########'),
+          phoneNum1,
         },
       },
     },
