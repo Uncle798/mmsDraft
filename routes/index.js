@@ -4,6 +4,7 @@ const needle = require('needle');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const { faker } = require('@faker-js/faker');
 const { baseLink } = require('../lib/baseLink');
+const { objHelpers } = require('../lib/objectHelpers');
 
 const lorem = faker.lorem.paragraphs(5);
 
@@ -76,7 +77,7 @@ router.get(
 /* Customer Dashboard. */
 router.get(
   '/customer',
-  ensureLoggedIn({ redirectTo: '/auth/login' }),
+  // ensureLoggedIn({ redirectTo: '/auth/login' }),
   // eslint-disable-next-line no-unused-vars
   (req, res) => {
     if (req.user.isAdmin) {
@@ -88,19 +89,17 @@ router.get(
         'GET',
         `${baseLink}/customerapi/user/currentinfo`,
         { data: req.user.id },
-        {
-          port: process.env.BROWSER_SYNC_PORT,
-        },
+        { port: process.env.BROWSER_SYNC_PORT },
         (error, response) => {
           if (error) {
             console.error(error);
           }
           const userInfo = response.body;
-          const keys = Object.keys(userInfo);
+          const prettykeys = objHelpers(userInfo);
           const values = Object.values(userInfo);
-          console.log(`>>>>> Keys: ${keys}
+          console.log(`>>>>> Keys: ${prettykeys}
           >>>>> Values: ${values}`);
-          res.render('customerDashboard', { title: 'Customer Dashboard', userInfo });
+          res.render('customerDashboard', { title: 'Customer Dashboard', userInfo, prettykeys });
         },
       );
     }

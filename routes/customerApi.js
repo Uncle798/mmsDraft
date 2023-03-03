@@ -116,8 +116,7 @@ router.put(
       },
       include: { employee: true },
     });
-    const returnObj = objHelpers(dbUser);
-    res.json(returnObj);
+    res.json(dbUser);
   },
 );
 
