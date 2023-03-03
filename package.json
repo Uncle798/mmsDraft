@@ -7,7 +7,7 @@
     "dev": "nodemon ./bin/www"
   },
   "dependencies": {
-    "@prisma/client": "4.9.0",
+    "@prisma/client": "latest",
     "@quixo3/prisma-session-store": "^3.1.10",
     "browser-sync": "^2.27.11",
     "connect-ensure-login": "^0.1.1",
@@ -47,7 +47,7 @@
     "gulp": "^4.0.2",
     "ngrok": "^4.3.3",
     "nodemon": "^2.0.20",
-    "prisma": "^4.10.0",
+    "prisma": "latest",
     "yarn-audit-fix": "^9.3.8"
   },
   "prisma": {
