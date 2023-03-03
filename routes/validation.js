@@ -16,7 +16,6 @@ router.post(
   async (req, res, next) => {
     const { email } = req.body;
     const result = Joi.assert(email, Joi.string().email());
-    console.log(`>>>>> validation loginForm: ${result}`);
     if (result) {
       console.error(result);
       res.render('login', {
@@ -48,7 +47,7 @@ router.post(
             console.error(err);
             res.set(err);
           }
-          const keys = Object.keys(response.body)
+          const keys = Object.keys(response.body);
           console.log(`>>>> needle.post response.body: ${keys}`);
           return res.render('loginSuccessfullEmailSent');
         },
@@ -66,7 +65,7 @@ const userFirstTimeSchema = Joi.object({
 router.post(
   '/userfirsttime',
   async (req, res, next) => {
-    const {error, value} = userFirstTimeSchema.validate(req.body)
+    const { error, value } = userFirstTimeSchema.validate(req.body);
     if (!errors.isEmpty()) {
       console.error(errors.array());
       res.render('/userFirstTime', {
@@ -107,13 +106,13 @@ const contactInfoSchema = Joi.object({
   state: Joi.string().valid(JSON.stringify(stateCodes)),
   zip: Joi.string().regex(zipcodeRegex),
   phoneNum1: Joi.string().regex(phoneRegex),
-  phoneNum2: Joi.string().regex(phoneRegex).optional()
+  phoneNum2: Joi.string().regex(phoneRegex).optional(),
 });
 
 router.post(
   '/contactinfoform',
   (req, res) => {
-    const {errors, result} = contactInfoSchema.validate(req.body)
+    const { errors, result } = contactInfoSchema.validate(req.body);
     if (!errors.isEmpty()) {
       console.error(errors.array());
       res.render('login', {

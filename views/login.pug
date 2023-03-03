@@ -5,7 +5,7 @@ block content
         form(action="/validation/loginform" method="post")
             h1 Enter your email to login 
             label(for="email") Email address: 
-                input(type="email" id="email")
+                input(type="email" id="email" name="email")
             button(type="submit") Submit
     div 
         form(action="/auth/federated/google" method="get")
