@@ -86,7 +86,7 @@ router.get(
     } else {
       needle.request(
         'GET',
-        `${baseLink}/api/user/currentinfo`,
+        `${baseLink}/customerapi/user/currentinfo`,
         { data: req.user.id },
         {
           port: process.env.BROWSER_SYNC_PORT,
@@ -96,6 +96,10 @@ router.get(
             console.error(error);
           }
           const userInfo = response.body;
+          const keys = Object.keys(userInfo);
+          const values = Object.values(userInfo);
+          console.log(`>>>>> Keys: ${keys}
+          >>>>> Values: ${values}`);
           res.render('customerDashboard', { title: 'Customer Dashboard', userInfo });
         },
       );

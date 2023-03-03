@@ -4,7 +4,7 @@ const { ensureLoggedIn } = require('connect-ensure-login');
 const router = express.Router();
 const prisma = require('../lib/db');
 const { subtractMonths } = require('../lib/dateHelpers');
-const { objHelpers, prettyKeys } = require('../lib/objectHelpers');
+const { objHelpers } = require('../lib/objectHelpers');
 
 router.get('/', (req, res) => { res.render('index'); });
 /** Customer Dashboard */
@@ -28,8 +28,7 @@ router.get(
         },
       },
     });
-    const returnObj = prettyKeys(dbUser);
-    res.json(returnObj);
+    res.json(dbUser);
   },
 );
 
