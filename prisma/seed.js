@@ -11,6 +11,7 @@ const { unitData, pricingData } = require('./unitsData');
 // actual vars:
 const earliestStarting = '2018-01-01'; // for leases invoices and payments
 const numExtraUsers = 300; // users above number of units
+const maxLeases = 8;
 
 async function deleteAll() {
   await prisma.paymentRecord.deleteMany();
@@ -82,7 +83,8 @@ async function createUser() {
 
 async function createEmployees() {
   let contactState = faker.faker.address.stateAbbr();
-  const me = await prisma.user.create({
+  const employees = [];
+  employees.push(await prisma.user.create({
     data: {
       email: String(process.env.MY_EMAIL),
       emailVerified: new Date(Date.now()),
@@ -104,9 +106,9 @@ async function createEmployees() {
         },
       },
     },
-  });
+  }));
   contactState = faker.faker.address.stateAbbr();
-  const george = await prisma.user.create({
+  employees.push(await prisma.user.create({
     data: {
       email: String(process.env.GEORGE_EMAIL),
       emailVerified: new Date(Date.now()),
@@ -128,9 +130,9 @@ async function createEmployees() {
         },
       },
     },
-  });
+  }));
   contactState = faker.faker.address.stateAbbr();
-  const fakeEmployee = await prisma.user.create({
+  employees.push(await prisma.user.create({
     data: {
       email: String(process.env.EMPLOYEE_EMAIL),
       emailVerified: null,
@@ -152,11 +154,11 @@ async function createEmployees() {
         },
       },
     },
-  });
-  return { me, george, fakeEmployee };
+  }));
+  return employees;
 }
 
-async function createLeases(unit, leaseStart, leaseEnd) {
+async function createLease(unit, leaseStart, leaseEnd) {
   const employees = await prisma.employee.findMany({
     select: { userId: true },
   });
@@ -165,10 +167,10 @@ async function createLeases(unit, leaseStart, leaseEnd) {
   const employee = employees[Math.floor(Math.random() * employees.length)];
   const customer = await prisma.user.findFirst({
     where: {
-      AND: {
-        id: { notIn: employeelist },
-        customerLeases: { none: {} },
-      },
+      AND: [
+        { id: { notIn: employeelist } },
+        { customerLeases: { none: {} } },
+      ],
     },
     select: {
       id: true,
@@ -230,76 +232,61 @@ async function createPayments(invoice, employee) {
   return record;
 }
 
-async function leaseMaker() {
-  const startTime = Date.now();
-  await deleteAll();
-  const deleteTime = Date.now();
-  console.log(`>> Everything deleted in ${deleteTime - startTime} ms`);
-  await createUnits();
-  await priceUnit();
+let startTime = Date.now();
+async function main() {
+  startTime = Date.now();
+  const del = await deleteAll();
+  let deleteTime = Date.now();
+  if (del) {
+    deleteTime = Date.now();
+    console.log(`>> Everything deleted in ${deleteTime - startTime} ms`);
+  }
+  let units = await createUnits();
+  const pricedUnit = await priceUnit();
+  const unitsTime = Date.now();
+  console.log(`>> ${pricedUnit.length} units created in ${unitsTime - deleteTime} ms`);
   let numUsers = unitData.length + numExtraUsers;
-  console.log(`> Creating ${numUsers} people`);
   while (numUsers > 0) {
     createUser();
     numUsers -= 1;
   }
-  await createEmployees();
+  const employees = await createEmployees();
+  const peopleTime = Date.now();
+  console.log(`>> ${unitData.length + numExtraUsers + employees.length} users in ${peopleTime - unitsTime} ms`);
   const leases = [];
-  const units = await prisma.unitPricing.findMany();
-  // create leases
+  units = await prisma.unitPricing.findMany();
   units.forEach(async (unit) => {
+    const unitLeases = Array.from({ length: Math.floor(Math.random() * maxLeases) + 1 });
     let leaseStart = new Date(earliestStarting);
-    const numLeases = Math.floor(Math.random() * 6) + 1;
-    let i = 1;
-    let numMonthsLeft = monthDif(earliestStarting, Date.now());
-    while (i <= numLeases) {
+    let numMonthsLeft = monthDif(leaseStart, Date.now());
+    unitLeases.forEach(async (lease) => {
       const lengthOfLease = Math.floor(Math.random() * numMonthsLeft) + 1;
       let leaseEnd = new Date(addMonths(leaseStart, lengthOfLease));
-      const mD = monthDif(leaseEnd, Date.now());
-      if (
-        leaseEnd > Date.now()
-        || monthDif(leaseEnd, Date.now()) < 3
-        || i === numLeases
-      ) { leaseEnd = null; }
-      if ((leaseEnd && leaseEnd < Date.now()) || leaseStart < earliestStarting) {
-        break;
-      }
-      leases.push(createLeases(unit, leaseStart, leaseEnd));
-      i += 1;
-      numMonthsLeft = monthDif(leaseEnd, Date.now());
-      leaseStart = addMonths(leaseEnd, Math.floor(Math.random * 4) + 1);
-      if (leaseEnd >= Date.now() || leaseStart >= Date.now() || leaseStart < earliestStarting) {
-        break;
-      }
-    }
+      if (leaseEnd > Date.now() || monthDif(leaseEnd, Date.now()) < 3) { leaseEnd = null; }
+      leases.push(await createLease(unit, leaseStart, leaseEnd));
+      leaseStart = addMonths(leaseEnd, 1);
+      numMonthsLeft = monthDif(leaseStart, Date.now());
+    });
   });
-  return leases;
-}
-async function invoiceMaker(leases) {
+  const leaseTime = Date.now();
+  console.log(`>> ${leases.length} leases in ${leaseTime - peopleTime} ms`);
   const invoices = [];
   leases.forEach(async (lease) => {
     invoices.push(await createInvoices(lease));
   });
-  return invoices;
-}
-
-async function paymentsMaker(invoices) {
-  const employees = await prisma.employee.findMany();
+  const invoiceTime = Date.now();
+  console.log(`>> ${invoices.length} leases in ${invoiceTime - leaseTime} ms`);
   const payments = [];
   invoices.forEach(async (invoice) => {
     payments.push(
       await createPayments(invoice, employees[Math.floor(Math.random() * employees.length)]),
     );
   });
-  return payments;
+  const paymentTime = Date.now();
+  console.log(`>> ${payments.length} leases in ${paymentTime - invoiceTime} ms`);
 }
 
-(async () => {
-  try {
-    const leases = await leaseMaker();
-    const invoices = await invoiceMaker(leases);
-    const payments = await paymentsMaker(invoices);
-  } catch (error) {
-    console.log(`>>>>> error: ${error}`);
-  }
-})();
+main().catch((err) => { console.log(`>>>>> err: ${err}`); }).then(() => {
+  const endTime = Date.now();
+  console.log(`>> Everything completed in ${(endTime - startTime) / 1000} seconds`);
+});
