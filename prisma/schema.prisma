@@ -38,6 +38,7 @@ model Employee {
   employeeLeases  Lease[]
   paymentRecieved PaymentRecord[]
   isAdmin         Boolean         @default(false)
+  stillEmployeed  Boolean         @default(true)
 
   @@unique([email, userId])
 }
