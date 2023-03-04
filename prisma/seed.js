@@ -1,17 +1,42 @@
-/* eslint-disable no-console */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-plusplus */
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 const faker = require('@faker-js/faker');
+const { createLogger, format, transports } = require('winston');
 const prisma = require('../lib/db');
 const { addMonths, arrayMonths, monthDif } = require('../lib/dateHelpers');
 const { unitData, pricingData } = require('./unitsData');
-
 // actual vars:
 const earliestStarting = '2018-01-01'; // for leases invoices and payments
 const numExtraUsers = 300; // users above number of units
 const maxLeases = 8;
+
+const logger = createLogger({
+  level: 'info',
+  format: format.combine(
+    format.timestamp({
+      format: 'YYYY-MM-DD HH:mm:ss',
+    }),
+    format.errors({ stack: true }),
+    format.splat(),
+    format.json(),
+  ),
+  defaultMeta: { service: 'db Seed' },
+  transports: [
+    //
+    // - Write to all logs with level `info` and below to `quick-start-combined.log`.
+    // - Write all logs error (and below) to `quick-start-error.log`.
+    //
+    new transports.File({ filename: 'seed.log', dirname: 'prisma' }),
+    new transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.simple(),
+      ),
+    }),
+  ],
+});
 
 async function deleteAll() {
   await prisma.paymentRecord.deleteMany();
@@ -25,6 +50,21 @@ async function deleteAll() {
   await prisma.employee.deleteMany();
   await prisma.user.deleteMany();
   return true;
+}
+
+async function countAll() {
+  let count = 0;
+  count += await prisma.paymentRecord.count();
+  count += await prisma.invoice.count();
+  count += await prisma.lease.count();
+  count += await prisma.paymentRecord.count();
+  count += await prisma.unitPricing.count();
+  count += await prisma.pricing.count();
+  count += await prisma.unit.count();
+  count += await prisma.contactInfo.count();
+  count += await prisma.employee.count();
+  count += await prisma.user.count();
+  return count;
 }
 
 async function createUnits() {
@@ -233,18 +273,22 @@ async function createPayments(invoice, employee) {
 }
 
 let startTime = Date.now();
+
 async function main() {
   startTime = Date.now();
+  let recordCount = await countAll();
   const del = await deleteAll();
   let deleteTime = Date.now();
   if (del) {
     deleteTime = Date.now();
-    console.log(`>> Everything deleted in ${deleteTime - startTime} ms`);
+    logger.log('info', `>> ${recordCount} records deleted in ${deleteTime - startTime} ms`);
   }
+  recordCount = await countAll();
+  logger.log('info', `recordCount: ${recordCount}`);
   let units = await createUnits();
   const pricedUnit = await priceUnit();
   const unitsTime = Date.now();
-  console.log(`>> ${pricedUnit.length} units created in ${unitsTime - deleteTime} ms`);
+  logger.log('info', `>> ${pricedUnit.length} units created in ${unitsTime - deleteTime} ms`);
   let numUsers = unitData.length + numExtraUsers;
   while (numUsers > 0) {
     createUser();
@@ -252,7 +296,7 @@ async function main() {
   }
   const employees = await createEmployees();
   const peopleTime = Date.now();
-  console.log(`>> ${unitData.length + numExtraUsers + employees.length} users in ${peopleTime - unitsTime} ms`);
+  logger.log('info', `>> ${unitData.length + numExtraUsers + employees.length} users in ${peopleTime - unitsTime} ms`);
   const leases = [];
   units = await prisma.unitPricing.findMany();
   units.forEach(async (unit) => {
@@ -269,13 +313,13 @@ async function main() {
     });
   });
   const leaseTime = Date.now();
-  console.log(`>> ${leases.length} leases in ${leaseTime - peopleTime} ms`);
+  logger.log('info', `>> ${leases.length} leases in ${leaseTime - peopleTime} ms`);
   const invoices = [];
   leases.forEach(async (lease) => {
     invoices.push(await createInvoices(lease));
   });
   const invoiceTime = Date.now();
-  console.log(`>> ${invoices.length} leases in ${invoiceTime - leaseTime} ms`);
+  logger.log('info', `>> ${invoices.length} leases in ${invoiceTime - leaseTime} ms`);
   const payments = [];
   invoices.forEach(async (invoice) => {
     payments.push(
@@ -283,10 +327,11 @@ async function main() {
     );
   });
   const paymentTime = Date.now();
-  console.log(`>> ${payments.length} leases in ${paymentTime - invoiceTime} ms`);
+  logger.log('info', `>> ${payments.length} leases in ${paymentTime - invoiceTime} ms`);
 }
 
-main().catch((err) => { console.log(`>>>>> err: ${err}`); }).then(() => {
+main().catch((err) => { logger.log('info', `>>>>> err: ${err}`); }).then(async () => {
+  const recordCount = await countAll();
   const endTime = Date.now();
-  console.log(`>> Everything completed in ${(endTime - startTime) / 1000} seconds`);
+  logger.log('info', `>> ${recordCount} records created in ${(endTime - startTime) / 1000} seconds`);
 });
